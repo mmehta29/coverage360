@@ -1,10 +1,10 @@
 """
-Claude-powered extraction: PDF text → normalized ExtractedPolicy JSON.
+Hybrid extraction pipeline:
+  - Rule-based parser (pdf_parser.py) handles: payer, dates, HCPCS, ICD-10 codes — free, instant
+  - Claude handles: coverage rules, drug names, PA criteria, step therapy — only sees ~20K chars
 """
-import hashlib
 import json
 import re
-from pathlib import Path
 
 import anthropic
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -136,85 +136,98 @@ DOCUMENT:
 """
 
 
-def extract_text_from_pdf(pdf_path: str) -> tuple[str, str]:
-    """Extract text from PDF and return (text, sha256_hash)."""
-    import pypdf
-    reader = pypdf.PdfReader(pdf_path)
-    pages = []
-    for page in reader.pages:
-        text = page.extract_text()
-        if text:
-            pages.append(text)
-    full_text = "\n\n".join(pages)
-    text_hash = hashlib.sha256(full_text.encode()).hexdigest()
-    return full_text, text_hash
-
-
-def extract_text_from_docx(docx_path: str) -> tuple[str, str]:
-    """Extract text from DOCX and return (text, sha256_hash)."""
-    import docx
-    doc = docx.Document(docx_path)
-    paragraphs = [p.text for p in doc.paragraphs if p.text.strip()]
-    full_text = "\n".join(paragraphs)
-    text_hash = hashlib.sha256(full_text.encode()).hexdigest()
-    return full_text, text_hash
-
-
-@retry(stop=stop_after_attempt(4), wait=wait_exponential(min=60, max=120))
-def call_claude(text: str, api_key: str) -> str:
-    """Call Claude with the extraction prompt and return raw JSON string."""
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(min=30, max=90))
+def call_claude(text: str, api_key: str, pre_extracted: dict) -> str:
+    """
+    Call Claude with ONLY the trimmed relevant sections (~20K chars max).
+    Pre-extracted fields (dates, payer, HCPCS codes) are injected as hints
+    so Claude doesn't waste tokens re-deriving them.
+    """
     client = anthropic.Anthropic(api_key=api_key)
-    # Keep max_tokens under 8K to stay within the per-minute output rate limit
+
+    # Build context hints from rule-based extraction
+    hints = f"""
+PRE-EXTRACTED CONTEXT (already identified by rule-based parser — use these, don't re-derive):
+- Payer: {pre_extracted.get('payer_name')} ({pre_extracted.get('payer_short_name')})
+- Policy Number: {pre_extracted.get('policy_number')}
+- Policy Type: {pre_extracted.get('policy_type')}
+- Effective Date: {pre_extracted.get('effective_date')}
+- HCPCS Codes found: {', '.join(c['code'] for c in pre_extracted.get('hcpcs_codes', [])[:20])}
+
+YOUR JOB: Extract only the coverage_rules, drugs, and drug_category_positions from the RELEVANT SECTIONS below.
+Focus on: drug names, indications, coverage status, PA criteria, step therapy requirements.
+"""
+
     message = client.messages.create(
-        model="claude-sonnet-4-5",
+        model="claude-sonnet-4-6",
         max_tokens=8000,
         messages=[
             {
                 "role": "user",
-                "content": EXTRACTION_PROMPT + text[:100000],
+                "content": EXTRACTION_PROMPT + hints + "\n\nRELEVANT SECTIONS:\n" + text,
             }
         ],
     )
     return message.content[0].text
 
 
-def parse_claude_response(raw_json: str) -> ExtractedPolicy:
+def parse_claude_response(raw_json: str) -> dict:
     """
-    Parse and validate Claude's JSON output into our Pydantic model.
-    Uses json-repair as fallback for truncated responses (large policies can hit token limits).
+    Parse Claude's JSON output. Uses json-repair as fallback for truncated responses.
+    Returns raw dict (not yet a Pydantic model — caller merges with pre-extracted data).
     """
     from json_repair import repair_json
 
-    # Strip markdown code fences if present
     raw_json = re.sub(r"^```(?:json)?\s*", "", raw_json.strip())
     raw_json = re.sub(r"\s*```$", "", raw_json.strip())
 
-    # First try clean parse
     try:
-        data = json.loads(raw_json)
+        return json.loads(raw_json)
     except json.JSONDecodeError:
-        # Repair truncated/malformed JSON (common when output hits token limit)
         repaired = repair_json(raw_json, return_objects=False)
-        data = json.loads(repaired)
-
-    return ExtractedPolicy(**data)
+        return json.loads(repaired)
 
 
 def extract_policy(file_path: str, api_key: str) -> tuple[ExtractedPolicy, str, str]:
     """
-    Main entry point: given a file path and Claude API key,
-    returns (ExtractedPolicy, raw_text, raw_text_hash).
+    Hybrid pipeline:
+      1. Rule-based parser  — extracts payer, dates, HCPCS, ICD-10 (free, instant)
+      2. Claude             — only gets the trimmed relevant sections (~20K chars)
+      3. Merge              — combine rule-based + Claude output into ExtractedPolicy
     """
-    path = Path(file_path)
-    suffix = path.suffix.lower()
+    from ingestion.pdf_parser import parse_document
 
-    if suffix == ".pdf":
-        raw_text, text_hash = extract_text_from_pdf(file_path)
-    elif suffix in (".docx", ".doc"):
-        raw_text, text_hash = extract_text_from_docx(file_path)
-    else:
-        raise ValueError(f"Unsupported file type: {suffix}")
+    # Step 1: Rule-based extraction (free)
+    pre = parse_document(file_path)
+    raw_text_hash = pre["raw_text_hash"]
+    text_for_claude = pre["text_for_claude"]
 
-    raw_json = call_claude(raw_text, api_key)
-    policy = parse_claude_response(raw_json)
-    return policy, raw_text, text_hash
+    print(f"  Rule-based: {pre['payer_name']} | {len(pre['hcpcs_codes'])} HCPCS codes | "
+          f"{len(pre['icd10_codes'])} ICD-10 codes | sending {len(text_for_claude):,} chars to Claude")
+
+    # Step 2: Claude extracts coverage rules + drugs from trimmed text
+    raw_json = call_claude(text_for_claude, api_key, pre)
+    claude_data = parse_claude_response(raw_json)
+
+    # Step 3: Merge — rule-based metadata overrides Claude's metadata
+    # (rule-based is more reliable for structured fields like dates/payer name)
+    if "policy_metadata" not in claude_data:
+        claude_data["policy_metadata"] = {}
+
+    meta = claude_data["policy_metadata"]
+    meta["payer_name"] = pre["payer_name"] or meta.get("payer_name", "Unknown")
+    meta["payer_short_name"] = pre["payer_short_name"] or meta.get("payer_short_name")
+    meta["payer_type"] = pre["payer_type"] or meta.get("payer_type")
+    meta["policy_number"] = pre["policy_number"] or meta.get("policy_number")
+    meta["policy_type"] = pre["policy_type"] or meta.get("policy_type", "medical_benefit_drug_policy")
+    if pre.get("effective_date"):
+        meta["effective_date"] = pre["effective_date"]
+    if pre.get("reviewed_date"):
+        meta["reviewed_date"] = pre["reviewed_date"]
+    if pre.get("revised_date"):
+        meta["revised_date"] = pre["revised_date"]
+    if not meta.get("policy_title"):
+        meta["policy_title"] = "Untitled Policy"
+
+    policy = ExtractedPolicy(**claude_data)
+    return policy, text_for_claude, raw_text_hash

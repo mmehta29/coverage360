@@ -75,7 +75,7 @@ class CoverageRuleSchema(BaseModel):
     # Indication-level fields
     indication_name: Optional[str] = None          # None = applies to all indications (e.g. MDL entry)
     icd10_codes: list[str] = []
-    coverage_status: str                            # covered | not_covered | preferred | non_preferred | preferred_specialty | non_specialty | unproven
+    coverage_status: Optional[str] = "unknown"     # covered | not_covered | preferred | non_preferred | preferred_specialty | non_specialty | unproven
     evidence_basis: Optional[str] = None            # fda_approved | nccn_category1 | nccn_category2a | off_label | unproven
     requires_prior_auth: bool = False
     prior_auth_type: Optional[str] = None           # standard | specialty | medical_necessity

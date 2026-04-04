@@ -1,6 +1,5 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
-import styles from './ChatWidget.module.css'
 
 export default function ChatWidget({ drugName }) {
   const [messages, setMessages] = useState([])
@@ -16,8 +15,7 @@ export default function ChatWidget({ drugName }) {
     const q = input.trim()
     if (!q || loading) return
     setInput('')
-    const userMsg = { role: 'user', text: q }
-    setMessages(prev => [...prev, userMsg])
+    setMessages(prev => [...prev, { role: 'user', text: q }])
     setLoading(true)
     try {
       const res = await fetch('/api/chat', {
@@ -35,40 +33,38 @@ export default function ChatWidget({ drugName }) {
   }
 
   return (
-    <div className={styles.card}>
-      <div className={styles.head}>
-        <span className={styles.title}>Ask a question</span>
-        <span className={styles.grounded}>Grounded in source policies</span>
+    <div className="card">
+      <div className="card-head">
+        <span className="card-title">Ask a question</span>
+        <span style={{fontSize:'10.5px',color:'var(--covered)'}}>Grounded in source policies</span>
       </div>
-      <div className={styles.body}>
-        <div className={styles.well}>
-          {messages.length === 0 && (
-            <div className={styles.empty}>
-              Ask anything about {drugName ? <b>{drugName}</b> : 'a drug'} — coverage rules, step therapy, site-of-care, recent changes.
+      <div className="card-body">
+        <div className="chat-well">
+          {messages.length === 0 && !loading && (
+            <div className="chat-msg chat-a" style={{fontStyle:'normal',color:'var(--ink3)'}}>
+              Ask anything about {drugName} — coverage rules, step therapy, site-of-care, recent changes.
             </div>
           )}
           {messages.map((m, i) => (
-            <div key={i} className={`${styles.msg} ${m.role === 'user' ? styles.userMsg : styles.asstMsg}`}>
+            <div key={i} className={`chat-msg ${m.role === 'user' ? 'chat-u' : 'chat-a'}`}>
               {m.text}
-              {m.sources && <div className={styles.sources}>{m.sources}</div>}
+              {m.sources && <div className="chat-src">{m.sources}</div>}
             </div>
           ))}
           {loading && (
-            <div className={`${styles.msg} ${styles.asstMsg} ${styles.thinking}`}>
-              Thinking…
-            </div>
+            <div className="chat-msg chat-a" style={{color:'var(--ink3)',fontStyle:'italic'}}>Thinking…</div>
           )}
-          <div ref={bottomRef} />
+          <div ref={bottomRef}/>
         </div>
-        <div className={styles.inputRow}>
+        <div className="chat-input-row">
           <input
-            className={styles.input}
+            className="chat-input"
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && send()}
             placeholder="Ask about any drug, payer, or policy change…"
           />
-          <button className="btn-solid" style={{ fontSize: '12px', padding: '9px 15px' }} onClick={send} disabled={loading}>
+          <button className="btn-solid" style={{fontSize:'12px',padding:'9px 15px'}} onClick={send} disabled={loading}>
             Ask
           </button>
         </div>

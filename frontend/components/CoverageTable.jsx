@@ -1,45 +1,43 @@
-import styles from './CoverageTable.module.css'
-
-const STATUS_STYLE = {
-  covered: styles.pillCovered,
-  restricted: styles.pillRestricted,
-  denied: styles.pillDenied,
+const PILL_CLASS = {
+  covered: 'pill pill-c',
+  restricted: 'pill pill-r',
+  denied: 'pill pill-d',
 }
 
 export default function CoverageTable({ rows = [] }) {
   return (
-    <div className={styles.card}>
-      <div className={styles.head}>
-        <span className={styles.title}>Coverage across payers</span>
-        <button className={styles.action} onClick={() => exportCsv(rows)}>Export CSV →</button>
+    <div className="card">
+      <div className="card-head">
+        <span className="card-title">Coverage across payers</span>
+        <button className="card-action" onClick={() => exportCsv(rows)}>Export CSV →</button>
       </div>
-      <div className={styles.body}>
-        <table className={styles.table}>
+      <div className="card-body" style={{padding:0}}>
+        <table className="ctable">
           <thead>
             <tr>
-              <th style={{ width: 108 }}>Payer</th>
-              <th style={{ width: 90 }}>Status</th>
+              <th style={{width:108}}>Payer</th>
+              <th style={{width:90}}>Status</th>
               <th>Criteria summary</th>
-              <th style={{ width: 66, textAlign: 'right' }}>Effective</th>
+              <th style={{width:66,textAlign:'right'}}>Effective</th>
             </tr>
           </thead>
           <tbody>
             {rows.map(row => (
               <tr key={row.payer}>
-                <td><div className={styles.payer}>{row.payer}</div></td>
+                <td><div className="pnm">{row.payer}</div></td>
                 <td>
-                  <span className={`${styles.pill} ${STATUS_STYLE[row.status] ?? ''}`}>
-                    <span className={styles.dot} />
+                  <span className={PILL_CLASS[row.status] ?? 'pill'}>
+                    <span className="pdot"/>
                     {row.status.charAt(0).toUpperCase() + row.status.slice(1)}
                   </span>
                 </td>
                 <td>
-                  <div className={styles.criteria}>
+                  <div className="crit">
                     {row.criteriaHeadline && <b>{row.criteriaHeadline} </b>}
                     {row.criteria}
                   </div>
                 </td>
-                <td><div className={styles.eff}>{row.effective}</div></td>
+                <td><div className="eff">{row.effective}</div></td>
               </tr>
             ))}
           </tbody>
@@ -57,8 +55,6 @@ function exportCsv(rows) {
   const blob = new Blob([header + body], { type: 'text/csv' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
-  a.href = url
-  a.download = 'coverage.csv'
-  a.click()
+  a.href = url; a.download = 'coverage.csv'; a.click()
   URL.revokeObjectURL(url)
 }

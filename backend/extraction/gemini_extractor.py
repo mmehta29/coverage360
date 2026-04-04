@@ -1,12 +1,12 @@
 """
-Gemini-powered extraction: PDF text → normalized ExtractedPolicy JSON.
+Claude-powered extraction: PDF text → normalized ExtractedPolicy JSON.
 """
 import hashlib
 import json
 import re
 from pathlib import Path
 
-import google.generativeai as genai
+import anthropic
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from extraction.schema import ExtractedPolicy
@@ -48,8 +48,6 @@ SCHEMA:
   ],
 
   "coverage_rules": [
-    IMPORTANT: Create ONE rule per (drug + indication) combination. If a drug has 5 indications, create 5 rules.
-    For MDL/formulary-style documents with no per-indication criteria, create one rule per drug with indication_name = null.
     {
       "drug_brand_name": "string or null",
       "drug_generic_name": "string — must match a drug in the drugs array",
@@ -108,18 +106,16 @@ SCHEMA:
   ],
 
   "drug_category_positions": [
-    IMPORTANT: Extract this whenever the policy groups competing drugs into tiers (preferred vs non-preferred).
-    This captures the drug's competitive position within its therapeutic category — critical for rebate economics.
     {
-      "molecule": "string — the active molecule/ingredient class (e.g. 'bevacizumab', 'trastuzumab', 'botulinum_toxin_a')",
+      "molecule": "string — the active molecule/ingredient class (e.g. 'bevacizumab', 'trastuzumab')",
       "category_label": "string — as named in the document (e.g. 'Bevacizumab-Containing Agents')",
       "drug_brand_name": "string",
       "drug_generic_name": "string or null",
       "tier": "one of: preferred | non_preferred | not_covered",
-      "tier_position": number or null — position within the tier (1st, 2nd, etc.),
-      "total_in_tier": number or null — total drugs in this tier,
-      "is_exclusive_preferred": true or false — is this the ONLY preferred drug?,
-      "step_therapy_required": true or false — must try preferred before non-preferred?,
+      "tier_position": number or null,
+      "total_in_tier": number or null,
+      "is_exclusive_preferred": true or false,
+      "step_therapy_required": true or false,
       "notes": "string or null"
     }
   ]
@@ -127,12 +123,12 @@ SCHEMA:
 
 EXTRACTION RULES:
 1. Extract ALL drugs mentioned in the policy, including biosimilars.
-2. For prior auth criteria, capture the exact clinical thresholds (e.g. "≥15 headache days/month" → metric: "headache_days_per_month", operator: ">=", value: 15).
-3. For step therapy, list the drugs that must be tried/failed before this drug is covered.
-4. If the document is a Medical Drug List (MDL/formulary), coverage_type = "formulary_entry" and create one rule per drug row with the tier/coverage level.
-5. If the document groups drugs by preferred/non-preferred tier, populate drug_category_positions.
-6. If a drug is "Not Covered", set coverage_status = "not_covered" and populate covered_alternatives if listed.
-7. For ICD-10 codes that are exempt from PA requirements (common in MDL documents), use pa_exempt_icd10_codes.
+2. Create ONE coverage rule per (drug + indication) combination.
+3. For prior auth criteria, capture exact clinical thresholds (e.g. ">=15 headache days/month" → metric: "headache_days_per_month", operator: ">=", value: 15).
+4. For step therapy, list drugs that must be tried/failed before this drug is covered.
+5. If the document is a Medical Drug List (MDL/formulary), coverage_type = "formulary_entry" and create one rule per drug with indication_name = null.
+6. If the document groups drugs by preferred/non-preferred tier, populate drug_category_positions.
+7. If a drug is "Not Covered", set coverage_status = "not_covered" and populate covered_alternatives if listed.
 8. If information is not present, use null — never invent or assume data.
 9. Dates must be in YYYY-MM-DD format. If only month/year is given, use the first of the month.
 
@@ -165,33 +161,48 @@ def extract_text_from_docx(docx_path: str) -> tuple[str, str]:
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=2, max=10))
-def call_gemini(text: str, api_key: str) -> str:
-    """Call Gemini with the extraction prompt and return raw JSON string."""
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("gemini-1.5-flash")
-    prompt = EXTRACTION_PROMPT + text[:120000]  # stay within context limits
-    response = model.generate_content(
-        prompt,
-        generation_config=genai.types.GenerationConfig(
-            temperature=0,
-            response_mime_type="application/json",
-        ),
+def call_claude(text: str, api_key: str) -> str:
+    """Call Claude with the extraction prompt and return raw JSON string."""
+    client = anthropic.Anthropic(api_key=api_key)
+    # claude-sonnet-4-5 supports up to 64K output tokens with extended output
+    message = client.messages.create(
+        model="claude-sonnet-4-5",
+        max_tokens=16000,
+        messages=[
+            {
+                "role": "user",
+                "content": EXTRACTION_PROMPT + text[:100000],
+            }
+        ],
     )
-    return response.text
+    return message.content[0].text
 
 
-def parse_gemini_response(raw_json: str) -> ExtractedPolicy:
-    """Parse and validate Gemini's JSON output into our Pydantic model."""
+def parse_claude_response(raw_json: str) -> ExtractedPolicy:
+    """
+    Parse and validate Claude's JSON output into our Pydantic model.
+    Uses json-repair as fallback for truncated responses (large policies can hit token limits).
+    """
+    from json_repair import repair_json
+
     # Strip markdown code fences if present
     raw_json = re.sub(r"^```(?:json)?\s*", "", raw_json.strip())
     raw_json = re.sub(r"\s*```$", "", raw_json.strip())
-    data = json.loads(raw_json)
+
+    # First try clean parse
+    try:
+        data = json.loads(raw_json)
+    except json.JSONDecodeError:
+        # Repair truncated/malformed JSON (common when output hits token limit)
+        repaired = repair_json(raw_json, return_objects=False)
+        data = json.loads(repaired)
+
     return ExtractedPolicy(**data)
 
 
 def extract_policy(file_path: str, api_key: str) -> tuple[ExtractedPolicy, str, str]:
     """
-    Main entry point: given a file path and Gemini API key,
+    Main entry point: given a file path and Claude API key,
     returns (ExtractedPolicy, raw_text, raw_text_hash).
     """
     path = Path(file_path)
@@ -204,6 +215,6 @@ def extract_policy(file_path: str, api_key: str) -> tuple[ExtractedPolicy, str, 
     else:
         raise ValueError(f"Unsupported file type: {suffix}")
 
-    raw_json = call_gemini(raw_text, api_key)
-    policy = parse_gemini_response(raw_json)
+    raw_json = call_claude(raw_text, api_key)
+    policy = parse_claude_response(raw_json)
     return policy, raw_text, text_hash

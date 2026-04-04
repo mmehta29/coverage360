@@ -43,7 +43,7 @@ class PACriterion(BaseModel):
 
 class PACriteria(BaseModel):
     requires_pa: bool = True
-    top_level_logic: str = "ALL"     # ALL | ANY — whether all criteria must be met
+    top_level_logic: Optional[str] = "ALL"   # ALL | ANY — whether all criteria must be met
     criteria: list[PACriterion] = []
     step_therapy: list[StepTherapyStep] = []
     documentation_required: list[str] = []

@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 
 class HCPCSCode(BaseModel):
     code: str
-    description: str
+    description: Optional[str] = None
     unit: Optional[str] = None
 
 

@@ -1,0 +1,37 @@
+.bar {
+  background: var(--white);
+  border-top: 1px solid var(--line);
+  padding: 9px 28px;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--ink3);
+  font-weight: 300;
+}
+
+.ico {
+  width: 12px;
+  height: 12px;
+  display: flex;
+  flex-shrink: 0;
+}
+
+.ico svg {
+  width: 12px;
+  height: 12px;
+  stroke: var(--ink3);
+}
+
+.tag {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--ink3);
+  font-weight: 300;
+}

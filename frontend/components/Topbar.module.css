@@ -1,0 +1,52 @@
+.topbar {
+  background: var(--white);
+  border-bottom: 1px solid var(--line);
+  padding: 0 28px;
+  height: 54px;
+  display: flex;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.logo { display: flex; align-items: baseline; }
+
+.main {
+  font-family: var(--serif);
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--navy);
+}
+
+.accent {
+  font-family: var(--serif);
+  font-size: 20px;
+  font-weight: 400;
+  color: var(--accent);
+}
+
+.tag {
+  font-size: 10px;
+  color: var(--ink3);
+  font-weight: 300;
+  margin-left: 10px;
+  letter-spacing: 0.2px;
+  align-self: center;
+}
+
+.right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.payerPill {
+  font-size: 11px;
+  color: var(--ink2);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 3px 10px;
+}

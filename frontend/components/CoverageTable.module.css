@@ -1,0 +1,76 @@
+.card {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--rl);
+}
+
+.head {
+  padding: 13px 20px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.title { font-size: 12px; font-weight: 500; color: var(--ink); }
+
+.action {
+  font-size: 11px;
+  color: var(--accent);
+  background: none;
+  border: none;
+  font-family: var(--sans);
+}
+
+.action:hover { text-decoration: underline; }
+
+.body { padding: 0; }
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+  color: var(--ink3);
+  padding: 12px 20px 9px;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+}
+
+.table td {
+  padding: 13px 20px;
+  border-bottom: 1px solid var(--line2);
+  font-size: 12.5px;
+  vertical-align: top;
+}
+
+.table tr:last-child td { border-bottom: none; }
+
+.payer { font-weight: 500; color: var(--ink); font-size: 13px; }
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 9px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.pillCovered  { background: var(--covered-bg);    color: var(--covered);    border: 1px solid var(--covered-br); }
+.pillRestricted { background: var(--restricted-bg); color: var(--restricted); border: 1px solid var(--restricted-br); }
+.pillDenied   { background: var(--denied-bg);     color: var(--denied);     border: 1px solid var(--denied-br); }
+
+.dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+
+.criteria { font-size: 12px; color: var(--ink2); line-height: 1.5; }
+.criteria b { color: var(--ink); font-weight: 500; }
+
+.eff { font-size: 11px; color: var(--ink3); font-family: var(--mono); text-align: right; }

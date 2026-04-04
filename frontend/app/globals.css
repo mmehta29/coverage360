@@ -1,0 +1,63 @@
+@import url('https://fonts.googleapis.com/css2?family=Lora:wght@400;500&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --navy: #1a2e4a;
+  --accent: #2563a8;
+  --accent-lt: #eef4fc;
+  --ink: #1c2b3a;
+  --ink2: #4a5f78;
+  --ink3: #8a9db5;
+  --line: #e2e8f0;
+  --line2: #edf2f7;
+  --bg: #f7f9fc;
+  --white: #ffffff;
+  --covered: #0f7251;
+  --covered-bg: #edf7f3;
+  --covered-br: #b0dece;
+  --restricted: #854f0b;
+  --restricted-bg: #fef6ea;
+  --restricted-br: #f5d18a;
+  --denied: #a32d2d;
+  --denied-bg: #fdf1f1;
+  --denied-br: #f0b8b8;
+  --serif: 'Lora', Georgia, serif;
+  --sans: 'DM Sans', system-ui, sans-serif;
+  --mono: 'DM Mono', monospace;
+  --r: 8px;
+  --rl: 12px;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+button { cursor: pointer; }
+
+.btn-ghost {
+  font-size: 12px;
+  font-weight: 500;
+  font-family: var(--sans);
+  color: var(--accent);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 6px 13px;
+}
+.btn-solid {
+  font-size: 12px;
+  font-weight: 500;
+  font-family: var(--sans);
+  color: #fff;
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  padding: 6px 13px;
+}
+.btn-ghost:hover { background: var(--accent-lt); }
+.btn-solid:hover { opacity: 0.9; }

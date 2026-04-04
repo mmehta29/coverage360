@@ -6,22 +6,22 @@ import SearchHero from '@/components/SearchHero'
 import CoverageTable from '@/components/CoverageTable'
 import ChatWidget from '@/components/ChatWidget'
 import TrustBar from '@/components/TrustBar'
-import styles from './page.module.css'
 import { PAYERS, INDEX_STATS } from '@/lib/mockData'
 
 export default function Home() {
-  const [query, setQuery] = useState('')
+  const [query, setQuery] = useState('Rituximab')
   const [result, setResult] = useState(null)
   const [notFound, setNotFound] = useState(false)
   const [loading, setLoading] = useState(false)
 
   async function handleSearch(q) {
-    if (!q.trim()) return
-    setQuery(q)
+    const trimmed = q.trim()
+    if (!trimmed) return
+    setQuery(trimmed)
     setNotFound(false)
     setLoading(true)
     try {
-      const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`)
+      const res = await fetch(`/api/search?q=${encodeURIComponent(trimmed)}`)
       if (!res.ok) { setResult(null); setNotFound(true); return }
       setResult(await res.json())
     } finally {
@@ -29,30 +29,17 @@ export default function Home() {
     }
   }
 
-  const burdenColor = result
-    ? result.burdenScore >= 70 ? 'var(--denied)'
-      : result.burdenScore >= 50 ? 'var(--restricted)'
-      : 'var(--covered)'
-    : 'var(--restricted)'
-
-  const burdenBorder = result
-    ? result.burdenScore >= 70 ? 'var(--denied-br)'
-      : result.burdenScore >= 50 ? 'var(--restricted-br)'
-      : 'var(--covered-br)'
-    : 'var(--restricted-br)'
-
-  const burdenBg = result
-    ? result.burdenScore >= 70 ? 'var(--denied-bg)'
-      : result.burdenScore >= 50 ? 'var(--restricted-bg)'
-      : 'var(--covered-bg)'
-    : 'var(--restricted-bg)'
+  // Burden badge colors mirror the HTML's .burden-badge inline overrides
+  const burdenStyle = result ? getBurdenStyle(result.burdenScore) : {}
 
   return (
-    <div className={styles.page}>
+    <div>
       <Topbar payers={PAYERS} />
-      <div className={styles.shell}>
+
+      <div className="shell">
         <Sidebar alertCount={3} />
-        <div className={styles.main}>
+
+        <div className="main">
           <SearchHero
             query={query}
             onQueryChange={setQuery}
@@ -60,42 +47,41 @@ export default function Home() {
             indexStats={INDEX_STATS}
           />
 
-          <div className={styles.content}>
-            {loading && <div className={styles.status}>Searching…</div>}
+          <div className="content">
+            {loading && (
+              <div className="search-status">Searching…</div>
+            )}
 
             {notFound && !loading && (
-              <div className={styles.status}>No results found for <b>{query}</b>. Try Rituximab, Adalimumab, or Bevacizumab.</div>
+              <div className="search-status">
+                No results for <b>{query}</b>. Try Rituximab, Adalimumab, or Bevacizumab.
+              </div>
             )}
 
             {!result && !loading && !notFound && (
-              <div className={styles.empty}>
-                <div className={styles.emptyTitle}>Search for a drug to see coverage</div>
-                <div className={styles.emptyHint}>Try searching by brand name, generic name, or J-code.</div>
+              <div className="empty-state">
+                <div className="empty-title">Search for a drug to see coverage</div>
+                <div className="empty-hint">Try searching by brand name, generic name, or J-code.</div>
               </div>
             )}
 
             {result && !loading && (
               <>
-                <div className={styles.resultTop}>
+                <div className="result-top">
                   <div>
-                    <div className={styles.drugName}>{result.name}</div>
-                    <div className={styles.drugGeneric}>{result.generic}</div>
-                    <div className={styles.tags}>
-                      {result.tags.map(t => (
-                        <span key={t} className={styles.tag}>{t}</span>
-                      ))}
+                    <div className="drug-name">{result.name}</div>
+                    <div className="drug-generic">{result.generic}</div>
+                    <div className="drug-tags">
+                      {result.tags.map(t => <span key={t} className="dtag">{t}</span>)}
                     </div>
                   </div>
-                  <div
-                    className={styles.burdenBadge}
-                    style={{ borderColor: burdenBorder, background: burdenBg, color: burdenColor }}
-                  >
-                    <div className={styles.burdenNum}>{result.burdenScore}</div>
-                    <div className={styles.burdenLbl}>burden</div>
+                  <div className="burden-badge" style={burdenStyle}>
+                    <div className="burden-num" style={{color: burdenStyle.color}}>{result.burdenScore}</div>
+                    <div className="burden-lbl" style={{color: burdenStyle.color}}>burden</div>
                   </div>
                 </div>
 
-                <div className={styles.twoCol}>
+                <div className="two-col">
                   <CoverageTable rows={result.coverage} />
                   <ChatWidget drugName={result.name} />
                 </div>
@@ -108,4 +94,10 @@ export default function Home() {
       </div>
     </div>
   )
+}
+
+function getBurdenStyle(score) {
+  if (score >= 70) return { borderColor: 'var(--denied-br)', background: 'var(--denied-bg)', color: 'var(--denied)' }
+  if (score >= 50) return { borderColor: 'var(--restricted-br)', background: 'var(--restricted-bg)', color: 'var(--restricted)' }
+  return { borderColor: 'var(--covered-br)', background: 'var(--covered-bg)', color: 'var(--covered)' }
 }

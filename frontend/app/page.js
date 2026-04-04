@@ -1,18 +1,28 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Topbar from '@/components/Topbar'
 import Sidebar from '@/components/Sidebar'
 import SearchHero from '@/components/SearchHero'
 import CoverageTable from '@/components/CoverageTable'
 import ChatWidget from '@/components/ChatWidget'
 import TrustBar from '@/components/TrustBar'
-import { PAYERS, INDEX_STATS } from '@/lib/mockData'
+import { PAYERS as FALLBACK_PAYERS, INDEX_STATS } from '@/lib/mockData'
 
 export default function Home() {
   const [query, setQuery] = useState('Rituximab')
   const [result, setResult] = useState(null)
   const [notFound, setNotFound] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [payers, setPayers] = useState(FALLBACK_PAYERS)
+
+  useEffect(() => {
+    fetch('/api/payers')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.length) setPayers(data.map(p => p.short_name || p.name))
+      })
+      .catch(() => {})
+  }, [])
 
   async function handleSearch(q) {
     const trimmed = q.trim()
@@ -34,7 +44,7 @@ export default function Home() {
 
   return (
     <div>
-      <Topbar payers={PAYERS} />
+      <Topbar payers={payers} />
 
       <div className="shell">
         <Sidebar alertCount={3} />
@@ -54,7 +64,7 @@ export default function Home() {
 
             {notFound && !loading && (
               <div className="search-status">
-                No results for <b>{query}</b>. Try Rituximab, Adalimumab, or Bevacizumab.
+                No results for <b>{query}</b>. Check the spelling or try a generic name.
               </div>
             )}
 

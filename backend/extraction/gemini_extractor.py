@@ -160,14 +160,14 @@ def extract_text_from_docx(docx_path: str) -> tuple[str, str]:
     return full_text, text_hash
 
 
-@retry(stop=stop_after_attempt(3), wait=wait_exponential(min=2, max=10))
+@retry(stop=stop_after_attempt(4), wait=wait_exponential(min=60, max=120))
 def call_claude(text: str, api_key: str) -> str:
     """Call Claude with the extraction prompt and return raw JSON string."""
     client = anthropic.Anthropic(api_key=api_key)
-    # claude-sonnet-4-5 supports up to 64K output tokens with extended output
+    # Keep max_tokens under 8K to stay within the per-minute output rate limit
     message = client.messages.create(
         model="claude-sonnet-4-5",
-        max_tokens=16000,
+        max_tokens=8000,
         messages=[
             {
                 "role": "user",

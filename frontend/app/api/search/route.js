@@ -27,6 +27,17 @@ export async function GET(request) {
 
   const data = await res.json()
   if (!data.coverage || data.coverage.length === 0) {
+    // If drug exists but no coverage rules, return it with empty coverage
+    if (data.drug_info) {
+      return Response.json({
+        name: capitalize(data.drug_info.brand_name || data.drug_name),
+        generic: data.drug_info.generic_name || data.resolved_name || '',
+        tags: parseHcpcsTags(data.drug_info.hcpcs_codes),
+        burdenScore: null,  // No data to calculate
+        coverage: [],
+        noCoverageData: true,  // Flag for UI
+      })
+    }
     return Response.json({ error: 'Not found' }, { status: 404 })
   }
 
@@ -190,4 +201,12 @@ function adaptDrugSearch(data) {
 function capitalize(str) {
   if (!str) return ''
   return str.charAt(0).toUpperCase() + str.slice(1)
+}
+
+function parseHcpcsTags(hcpcsJson) {
+  if (!hcpcsJson) return []
+  try {
+    const codes = typeof hcpcsJson === 'string' ? JSON.parse(hcpcsJson) : hcpcsJson
+    return codes.map(c => c.code).filter(Boolean).slice(0, 2)
+  } catch { return [] }
 }

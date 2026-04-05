@@ -400,14 +400,28 @@ export default function Home() {
                         <div className="drug-generic">{result.generic}</div>
                         <div className="drug-tags">
                           {result.tags.map(tag => <span key={tag} className="dtag">{tag}</span>)}
+                          {result.drugClass && <span className="dtag">{result.drugClass}</span>}
                         </div>
                       </div>
-                      <div className="burden-badge" style={burdenStyle}>
-                        <div className="burden-num" style={{ color: burdenStyle.color }}>{result.burdenScore}</div>
-                        <div className="burden-lbl" style={{ color: burdenStyle.color }}>burden</div>
-                      </div>
+                      {result.burdenScore !== null && (
+                        <div className="burden-badge" style={burdenStyle}>
+                          <div className="burden-num" style={{ color: burdenStyle.color }}>{result.burdenScore}</div>
+                          <div className="burden-lbl" style={{ color: burdenStyle.color }}>burden</div>
+                        </div>
+                      )}
                     </div>
-                    <CoverageTable rows={result.coverage} />
+                    {result.noCoverageData ? (
+                      <div className="no-coverage-notice">
+                        <div className="no-coverage-icon">📋</div>
+                        <div className="no-coverage-title">Coverage information not available</div>
+                        <div className="no-coverage-text">
+                          This drug exists in our database, but no payer coverage policies have been indexed yet.
+                          Coverage data will appear here once relevant policies are uploaded.
+                        </div>
+                      </div>
+                    ) : (
+                      <CoverageTable rows={result.coverage} />
+                    )}
                   </>
                 )}
               </div>

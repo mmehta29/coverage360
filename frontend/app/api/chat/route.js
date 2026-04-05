@@ -20,6 +20,7 @@ export async function POST(request) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ question, drug }),
+      signal: AbortSignal.timeout(25000),
     })
     const data = await res.json()
     if (!res.ok) return Response.json({ error: data.detail || data.error || 'Chat failed' }, { status: res.status })

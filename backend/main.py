@@ -165,6 +165,21 @@ def search_drug_coverage(drug_name: str):
     resolved = resolve_drug_name(drug_name)
     terms = list({drug_name.lower(), resolved.lower()}) if resolved else [drug_name.lower()]
 
+    # First check if drug exists in drugs table (canonical drug info)
+    drug_info = None
+    for term in terms:
+        drug_rows = (
+            client.table("drugs")
+            .select("id, brand_name, generic_name, drug_class, hcpcs_codes")
+            .or_(f"generic_name.ilike.%{term}%,brand_name.ilike.%{term}%")
+            .limit(1)
+            .execute()
+        ).data
+        if drug_rows:
+            drug_info = drug_rows[0]
+            break
+
+    # Query coverage_rules
     seen, results = set(), []
     for term in terms:
         rows = (
@@ -187,6 +202,7 @@ def search_drug_coverage(drug_name: str):
     return {
         "drug_name": drug_name,
         "resolved_name": resolved,
+        "drug_info": drug_info,  # Canonical drug info from drugs table
         "total_results": len(results),
         "coverage": results,
     }

@@ -5,6 +5,36 @@ const PILL_CLASS = {
 }
 
 export default function CoverageTable({ rows = [] }) {
+  // Handle empty coverage array
+  if (!rows || rows.length === 0) {
+    return (
+      <div className="card">
+        <div className="card-head">
+          <span className="card-title">Coverage across payers</span>
+        </div>
+        <div className="card-body" style={{padding:0}}>
+          <table className="ctable">
+            <thead>
+              <tr>
+                <th style={{width:108}}>Payer</th>
+                <th style={{width:90}}>Status</th>
+                <th>Criteria summary</th>
+                <th style={{width:66,textAlign:'right'}}>Effective</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td colSpan={4} style={{textAlign:'center', color:'var(--ink3)', padding:'32px 16px'}}>
+                  No coverage data available. Check back when policies are indexed.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="card">
       <div className="card-head">

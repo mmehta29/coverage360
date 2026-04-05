@@ -380,11 +380,19 @@ export default function Home() {
                           {result.tags.map(tag => <span key={tag} className="dtag">{tag}</span>)}
                         </div>
                       </div>
-                      <div className="burden-badge" style={burdenStyle}>
-                        <div className="burden-num" style={{ color: burdenStyle.color }}>{result.burdenScore}</div>
-                        <div className="burden-lbl" style={{ color: burdenStyle.color }}>burden</div>
-                      </div>
+                      {result.burdenScore !== null && (
+                        <div className="burden-badge" style={burdenStyle}>
+                          <div className="burden-num" style={{ color: burdenStyle.color }}>{result.burdenScore}</div>
+                          <div className="burden-lbl" style={{ color: burdenStyle.color }}>burden</div>
+                        </div>
+                      )}
                     </div>
+                    {result.noCoverageData && (
+                      <div className="no-coverage-banner">
+                        <div className="no-coverage-title">No coverage data available</div>
+                        <div className="no-coverage-hint">Coverage information has not been indexed for this drug yet. Check back when policies are added.</div>
+                      </div>
+                    )}
                     <CoverageTable rows={result.coverage} />
                   </>
                 )}

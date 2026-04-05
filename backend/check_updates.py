@@ -8,20 +8,14 @@ For each tracked policy in Supabase:
   4. If different → text similarity check (free)
   5. If cosmetic (<2% change) → mark cosmetic, skip Claude
   6. If significant → re-ingest with Claude → structured diff → Claude diff
-  7. If meaningful changes found → send email digest via Resend
 
 Run from backend/:
     python3 check_updates.py
-
-Required env vars for email:
-    RESEND_API_KEY  — get a free key at resend.com
-    ALERT_EMAIL     — recipient address for nightly digest
 """
 import hashlib
 import os
 import sys
 import tempfile
-from datetime import date
 
 import httpx
 from dotenv import load_dotenv
@@ -39,147 +33,6 @@ from normalization.normalizer import (
     update_version_diff,
     _model_dump,
 )
-
-# ── Email digest ──────────────────────────────────────────────────────────────
-
-TYPE_EMOJI = {
-    "positive": "🟢",
-    "negative": "🔴",
-    "warning":  "🟡",
-}
-
-def _classify_change(summary: str) -> str:
-    s = summary.lower()
-    if any(w in s for w in ["added", "expanded", "new indication", "now covered"]):
-        return "positive"
-    if any(w in s for w in ["removed", "restricted", "no longer", "denied", "discontinued"]):
-        return "negative"
-    return "warning"
-
-
-def send_email_digest(meaningful: list[dict], checked: int, updated: int) -> None:
-    """Send a nightly policy-change digest via Resend. Silently skips if not configured."""
-    resend_key = os.getenv("RESEND_API_KEY", "")
-    recipient  = os.getenv("ALERT_EMAIL", "")
-    sender     = os.getenv("ALERT_FROM_EMAIL", "alerts@coverage360.dev")
-
-    if not resend_key or not recipient:
-        print("  (Email skipped — RESEND_API_KEY or ALERT_EMAIL not set)")
-        return
-
-    today = date.today().strftime("%B %d, %Y")
-
-    # Build HTML rows
-    rows_html = ""
-    rows_text = ""
-    for r in meaningful:
-        summary = r.get("diff_summary", "")
-        kind = _classify_change(summary)
-        emoji = TYPE_EMOJI[kind]
-        color = {"positive": "#15803d", "negative": "#dc2626", "warning": "#d97706"}[kind]
-        badge_bg = {"positive": "#dcfce7", "negative": "#fee2e2", "warning": "#fef9c3"}[kind]
-        rows_html += f"""
-        <tr>
-          <td style="padding:12px 16px;border-bottom:1px solid #f0f0f0;vertical-align:top;width:80px">
-            <span style="background:{badge_bg};color:{color};font-size:11px;font-weight:600;
-                         padding:3px 8px;border-radius:10px;white-space:nowrap">{emoji} {kind.upper()}</span>
-          </td>
-          <td style="padding:12px 16px;border-bottom:1px solid #f0f0f0;font-size:13px;color:#374151;line-height:1.5">
-            {summary}
-          </td>
-        </tr>"""
-        rows_text += f"  [{kind.upper()}] {summary}\n"
-
-    html_body = f"""<!DOCTYPE html>
-<html>
-<head><meta charset="UTF-8"></head>
-<body style="margin:0;padding:0;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
-  <div style="max-width:620px;margin:32px auto;background:#fff;border-radius:12px;
-               border:1px solid #e5e7eb;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06)">
-
-    <!-- Header -->
-    <div style="background:#0f172a;padding:24px 32px;display:flex;align-items:center">
-      <div>
-        <span style="font-size:20px;font-weight:700;color:#fff;letter-spacing:-0.5px">Coverage</span>
-        <span style="font-size:20px;font-weight:700;color:#3b82f6">360</span>
-        <span style="font-size:12px;color:#94a3b8;margin-left:8px">by Anton Rx</span>
-      </div>
-    </div>
-
-    <!-- Title bar -->
-    <div style="background:#1e40af;padding:14px 32px">
-      <div style="font-size:13px;font-weight:600;color:#bfdbfe;text-transform:uppercase;letter-spacing:0.8px">
-        Policy Change Digest — {today}
-      </div>
-    </div>
-
-    <!-- Stats strip -->
-    <div style="display:flex;gap:0;border-bottom:1px solid #e5e7eb">
-      <div style="flex:1;padding:16px 24px;text-align:center;border-right:1px solid #e5e7eb">
-        <div style="font-size:28px;font-weight:700;color:#dc2626">{len(meaningful)}</div>
-        <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.6px;margin-top:2px">Meaningful</div>
-      </div>
-      <div style="flex:1;padding:16px 24px;text-align:center;border-right:1px solid #e5e7eb">
-        <div style="font-size:28px;font-weight:700;color:#374151">{updated}</div>
-        <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.6px;margin-top:2px">Total Updated</div>
-      </div>
-      <div style="flex:1;padding:16px 24px;text-align:center">
-        <div style="font-size:28px;font-weight:700;color:#374151">{checked}</div>
-        <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.6px;margin-top:2px">Policies Checked</div>
-      </div>
-    </div>
-
-    <!-- Changes -->
-    <div style="padding:24px 32px 8px">
-      <div style="font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;
-                  letter-spacing:0.8px;margin-bottom:12px">Meaningful Policy Changes</div>
-    </div>
-    <table style="width:100%;border-collapse:collapse">
-      {rows_html}
-    </table>
-
-    <!-- CTA -->
-    <div style="padding:24px 32px">
-      <a href="https://coverage360.vercel.app/alerts"
-         style="display:inline-block;background:#1e40af;color:#fff;font-size:13px;font-weight:600;
-                padding:10px 24px;border-radius:8px;text-decoration:none">
-        View full alert history →
-      </a>
-    </div>
-
-    <!-- Footer -->
-    <div style="padding:16px 32px;border-top:1px solid #f0f0f0;background:#f8fafc">
-      <div style="font-size:11px;color:#9ca3af">
-        Automated by Coverage360 · GitHub Actions · Nightly at midnight AZ time<br>
-        Powered by Claude AI + Supabase
-      </div>
-    </div>
-  </div>
-</body>
-</html>"""
-
-    text_body = (
-        f"Coverage360 Policy Digest — {today}\n"
-        f"{'='*50}\n"
-        f"Checked: {checked}  |  Updated: {updated}  |  Meaningful: {len(meaningful)}\n\n"
-        f"MEANINGFUL CHANGES:\n{rows_text}\n"
-        f"View all: https://coverage360.vercel.app/alerts\n"
-    )
-
-    try:
-        import resend
-        resend.api_key = resend_key
-        resend.Emails.send({
-            "from": sender,
-            "to": [recipient],
-            "subject": f"[Coverage360] {len(meaningful)} meaningful policy change{'s' if len(meaningful) != 1 else ''} detected — {today}",
-            "html": html_body,
-            "text": text_body,
-        })
-        print(f"  Email digest sent to {recipient}")
-    except Exception as e:
-        print(f"  Email failed: {e}")
-
 
 # ── Known policy source URLs ───────────────────────────────────────────────────
 # Maps (payer_name_fragment, title_fragment) → direct PDF URL
@@ -390,10 +243,6 @@ def main():
     if updated and not meaningful:
         print("\nAll updates were cosmetic (date/formatting changes).")
 
-    # Send email digest if there are meaningful changes
-    if meaningful:
-        print("\nSending email digest...")
-        send_email_digest(meaningful, len(results), len(updated))
 
 
 if __name__ == "__main__":

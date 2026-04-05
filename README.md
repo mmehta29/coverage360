@@ -2,50 +2,93 @@
 ### AI-Powered Medical Benefit Drug Policy Tracker
 *Built for Anton Rx Challenge · Innovation Hacks 2.0*
 
----
-
-## The Problem
-
-Health plans govern medical benefit drugs through individual medical policies that vary by payer and change constantly. There is no centralized, standardized source for tracking which drugs are covered, what clinical criteria apply, or how policies differ across plans.
-
-Today, a market access analyst answering one question like *"Which plans require step therapy before approving Rituximab?"* has to manually visit 10+ payer websites, download different-format PDFs, find the relevant section in each, and mentally normalize everything — a process that can take hours.
-
-**Coverage360 eliminates that workflow.**
+[![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js)](https://nextjs.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-Python-009688?logo=fastapi)](https://fastapi.tiangolo.com)
+[![Claude AI](https://img.shields.io/badge/Claude-Anthropic-D97757?logo=anthropic)](https://anthropic.com)
 
 ---
 
-## What It Does
+## 🎯 The Problem
+
+Health plans govern medical benefit drugs through individual policies that vary by payer and change constantly. There is no centralized, standardized source for tracking which drugs are covered, what clinical criteria apply, or how policies differ across plans.
+
+Today, a market access analyst answering one question like *"Which plans require step therapy before approving Rituximab?"* has to:
+
+- 📄 Manually visit 10+ payer websites
+- 🔍 Download different-format PDFs and locate the relevant section in each
+- 🧠 Mentally normalize everything across formats
+- ⏰ Spend hours on a task that should take seconds
+
+**Coverage360 eliminates that entire workflow.**
+
+---
+
+## 💡 Our Solution
 
 Coverage360 ingests, parses, and normalizes medical policy documents from multiple health plans into a searchable, comparable, and trackable interface — purpose-built for the market access analyst.
 
-### Core Features
-
-**Compare** — Side-by-side coverage criteria for a single drug across all payers. Type a drug name, get a normalized table: what Cigna requires, what UHC requires, what EmblemHealth requires — instantly.
-
-**Policy Differ** — Upload or select two versions of a policy and get a semantic diff that separates meaningful clinical changes (new step therapy requirement, removed indication) from cosmetic edits (formatting tweaks, updated effective dates). No more reading both PDFs end-to-end.
-
-**Alerts** — Automated policy change detection. When a payer updates a policy, the system flags it with a severity level and surfaces exactly what changed. Stay current without manually chasing every payer's website.
-
-**Ask AI** — Natural language querying over the full policy database. Ask *"Does Cigna cover Rituxan for lupus?"* or *"What step therapy does UHC require for Humira?"* and get a fast, cited answer.
-
-**Coverage Strategy** *(in development)* — Analyst-facing payer optimizer. Input a drug, condition, budget level, and preferences (avoid PA, avoid step therapy, prefer fast approval) and get payers ranked by coverage friendliness with a scoring breakdown. Includes a "willing to switch drugs" mode that surfaces alternative drugs in the same therapeutic class ranked by payer score.
-
----
-
-## Tech Stack
-
-| Layer | Technology |
+| Feature | Description |
 |---|---|
-| Frontend | Next.js, React, Tailwind CSS |
-| Backend | Python (FastAPI) |
-| AI / NLP | Claude API (Anthropic) |
-| Policy Parsing | PDF extraction pipeline + Claude-powered normalization |
-| Change Detection | Semantic differ + GitHub Actions for scheduled policy checks |
-| Database | PostgreSQL |
+| **Compare** | Side-by-side coverage criteria for a single drug across all payers |
+| **Policy Differ** | Semantic diff that separates meaningful clinical changes from cosmetic edits |
+| **Alerts** | Automated policy change detection with severity levels |
+| **Ask AI** | Natural language querying over the full policy database |
+| **Coverage Strategy** | Analyst-facing payer optimizer with drug-switching mode *(in development)* |
 
 ---
 
-## Project Structure
+## ✨ Key Features
+
+### 📊 Cross-Payer Comparison
+
+Type a drug name, get a normalized table instantly:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  💊 Rituximab                                               │
+│    ├── Cigna       → Step therapy required (MTX first)      │
+│    ├── UHC         → PA required, no step therapy           │
+│    ├── EmblemHealth → Covered, quantity limit applies       │
+│    └── UPMC        → Restricted to oncology indications     │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 🔍 Intelligent Policy Differ
+
+Upload or select two versions of a policy and get a semantic diff that separates what actually matters:
+
+| Change Type | Example |
+|---|---|
+| 🔴 **Clinical** | New step therapy requirement added |
+| 🟠 **Coverage** | Indication removed from covered list |
+| 🟡 **Criteria** | PA criteria updated |
+| 🟢 **Cosmetic** | Formatting tweak, updated effective date |
+
+### 🔔 Automated Alerts
+
+- Policy change detection via scheduled GitHub Actions
+- Severity-ranked flagging for every payer update
+- Exact diff surfaced — no need to re-read the full PDF
+
+### 🤖 Ask AI
+
+Natural language queries over the full policy database, powered by Claude:
+
+> *"Does Cigna cover Rituxan for lupus?"*
+> *"What step therapy does UHC require for Humira?"*
+
+Fast, cited answers with traceability back to source policy documents.
+
+### 🏆 Coverage Strategy *(in development)*
+
+Input a drug, condition, budget, and preferences (avoid PA, avoid step therapy, prefer fast approval) and get:
+
+- Payers ranked by coverage friendliness with scoring breakdown
+- "Willing to switch drugs" mode surfacing alternatives in the same therapeutic class
+
+---
+
+## 🏗️ Architecture
 
 ```
 coverage360/
@@ -70,7 +113,23 @@ coverage360/
 
 ---
 
-## Payers Supported
+## 🗂️ Data Extracted Per Policy
+
+From each document, Coverage360 normalizes:
+
+- Drug name (brand + generic) and HCPCS/J-code
+- Drug category and therapeutic class
+- Access status (preferred tier, exclusivity)
+- Covered indications and diagnoses
+- Prior authorization requirements and criteria
+- Step therapy requirements
+- Site-of-care restrictions
+- Dosing and quantity limits
+- Policy effective date and version
+
+---
+
+## 🏥 Payers Supported
 
 | Payer | Format | Status |
 |---|---|---|
@@ -82,23 +141,20 @@ coverage360/
 
 ---
 
-## Key Data Fields Extracted
+## 🛠️ Tech Stack
 
-From each policy document, Coverage360 extracts and normalizes:
-
-- Drug name (brand + generic) and HCPCS/J-code
-- Drug category and therapeutic class
-- Access status (preferred tier, exclusivity)
-- Covered indications / diagnoses
-- Prior authorization requirements and criteria
-- Step therapy requirements (what must be tried first)
-- Site-of-care restrictions
-- Dosing and quantity limits
-- Policy effective date and version
+| Layer | Technology |
+|---|---|
+| **Frontend** | Next.js, React, Tailwind CSS |
+| **Backend** | Python, FastAPI |
+| **AI / NLP** | Claude API (Anthropic) |
+| **Policy Parsing** | PDF extraction pipeline + Claude-powered normalization |
+| **Change Detection** | Semantic differ + GitHub Actions |
+| **Database** | PostgreSQL, Supabase |
 
 ---
 
-## Getting Started
+## 🚀 Getting Started
 
 ```bash
 # Clone the repo
@@ -115,3 +171,26 @@ cd backend
 pip install -r requirements.txt
 uvicorn main:app --reload
 ```
+
+---
+
+## 📈 What Makes This Hackathon-Worthy
+
+1. **Real Workflow Eliminated** — Hours of manual payer research reduced to seconds
+2. **Semantic Intelligence** — Distinguishes meaningful clinical changes from noise
+3. **Proactive Monitoring** — Automated GitHub Actions keeps analysts current without manual effort
+4. **Natural Language Interface** — No query syntax needed; ask in plain English
+5. **Multi-Payer Normalization** — Apples-to-apples comparison across incompatible PDF formats
+6. **Analyst-First Design** — Every feature maps directly to a real market access workflow
+
+---
+
+## 👥 Team
+
+Built with ❤️ for Anton Rx Challenge · Innovation Hacks 2.0
+
+---
+
+## 📄 License
+
+MIT License — see [LICENSE](LICENSE) for details.

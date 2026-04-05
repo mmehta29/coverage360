@@ -160,6 +160,7 @@ def get_policy(policy_id: str):
 def search_drug_coverage(drug_name: str):
     """
     Q1: Given a drug name (brand or generic), return coverage status across all payers.
+    If no coverage rules exist, check drugs table and return drug info with empty coverage.
     """
     client = get_client()
     resolved = resolve_drug_name(drug_name)
@@ -171,7 +172,9 @@ def search_drug_coverage(drug_name: str):
             client.table("coverage_rules")
             .select(
                 "indication_name, coverage_status, requires_prior_auth, prior_auth_type, "
-                "step_therapy, hcpcs_code, drug_brand_name, drug_generic_name, "
+                "step_therapy, pa_criteria, hcpcs_code, drug_brand_name, drug_generic_name, "
+                "limitations, general_requirements, site_of_care_restriction, line_of_therapy, "
+                "evidence_basis, covered_alternatives, "
                 "policies(id, policy_title, effective_date, payers(name, short_name))"
             )
             .or_(f"drug_generic_name.ilike.%{term}%,drug_brand_name.ilike.%{term}%")
@@ -183,6 +186,34 @@ def search_drug_coverage(drug_name: str):
             if key not in seen:
                 seen.add(key)
                 results.append(r)
+
+    # If no coverage rules found, check if drug exists in drugs table
+    if not results:
+        for term in terms:
+            drug_rows = (
+                client.table("drugs")
+                .select("brand_name, generic_name, hcpcs_codes, drug_class, is_biosimilar")
+                .or_(f"generic_name.ilike.%{term}%,brand_name.ilike.%{term}%")
+                .limit(5)
+                .execute()
+            ).data
+            if drug_rows:
+                # Drug exists but no coverage info
+                drug = drug_rows[0]
+                return {
+                    "drug_name": drug_name,
+                    "resolved_name": resolved,
+                    "total_results": 0,
+                    "coverage": [],
+                    "drug_info": {
+                        "brand_name": drug.get("brand_name"),
+                        "generic_name": drug.get("generic_name"),
+                        "hcpcs_codes": drug.get("hcpcs_codes"),
+                        "drug_class": drug.get("drug_class"),
+                        "is_biosimilar": drug.get("is_biosimilar"),
+                    },
+                    "no_coverage_data": True,
+                }
 
     return {
         "drug_name": drug_name,

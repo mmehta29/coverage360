@@ -1,25 +1,72 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 const TYPE_LABEL = {
   positive: 'Coverage added',
-  warning: 'Policy updated',
+  warning:  'Policy updated',
   negative: 'Coverage reduced',
 }
 
+// ── Sound cache: fetch once, reuse as blob URL ────────────────────────────────
+const sfxCache = {}
+
+async function loadSfx(type) {
+  if (sfxCache[type]) return sfxCache[type]
+  try {
+    const res = await fetch(`/api/voice/sfx?type=${type}`)
+    if (!res.ok) return null
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    sfxCache[type] = url
+    return url
+  } catch {
+    return null
+  }
+}
+
+function playSfx(type) {
+  loadSfx(type).then(url => {
+    if (!url) return
+    const audio = new Audio(url)
+    audio.volume = 0.4
+    audio.play().catch(() => {})  // ignore autoplay policy errors silently
+  })
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
 export default function AlertsPanel({ alerts = [], days = 1, loading = false, error = '' }) {
-  const [openAlertId, setOpenAlertId] = useState('')
-  const [diffCache, setDiffCache] = useState({})
+  const [openAlertId,   setOpenAlertId]   = useState('')
+  const [diffCache,     setDiffCache]     = useState({})
   const [diffLoadingId, setDiffLoadingId] = useState('')
-  const [diffError, setDiffError] = useState('')
+  const [diffError,     setDiffError]     = useState('')
+
+  // Track whether we've played the sound for this alerts load
+  const soundPlayedRef = useRef(false)
+
+  useEffect(() => {
+    if (loading || error || alerts.length === 0) {
+      soundPlayedRef.current = false
+      return
+    }
+    if (soundPlayedRef.current) return
+    soundPlayedRef.current = true
+
+    // Determine dominant type: negative > warning > positive
+    const hasNegative = alerts.some(a => a.type === 'negative')
+    const hasWarning  = alerts.some(a => a.type === 'warning')
+    const sfxType     = hasNegative ? 'negative' : hasWarning ? 'warning' : 'positive'
+
+    // Pre-load all three in background, play the dominant one
+    loadSfx('negative')
+    loadSfx('warning')
+    loadSfx('positive')
+    playSfx(sfxType)
+  }, [alerts, loading, error])
 
   async function toggleDiff(alert) {
     if (!alert.policyId) return
-    if (openAlertId === alert.id) {
-      setOpenAlertId('')
-      return
-    }
+    if (openAlertId === alert.id) { setOpenAlertId(''); return }
 
     setOpenAlertId(alert.id)
     setDiffError('')
@@ -62,8 +109,8 @@ export default function AlertsPanel({ alerts = [], days = 1, loading = false, er
       ) : (
         <div className="alerts-feed">
           {alerts.map(alert => {
-            const isOpen = openAlertId === alert.id
-            const diff = alert.policyId ? diffCache[alert.policyId] : null
+            const isOpen       = openAlertId === alert.id
+            const diff         = alert.policyId ? diffCache[alert.policyId] : null
             const isLoadingDiff = diffLoadingId === alert.id
 
             return (

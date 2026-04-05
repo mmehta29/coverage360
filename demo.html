@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Coverage360 - Product Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+/* â•â•â• DEMO CHROME â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{width:100%;height:100%;overflow:hidden;background:#090d16;font-family:'DM Sans',system-ui,sans-serif;}
+#stage{position:relative;width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;}
+
+#intro{position:fixed;inset:0;z-index:300;background:#090d16;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;opacity:0;transition:opacity 0.65s ease;pointer-events:none;}
+#intro.vis{opacity:1;}#intro.out{opacity:0;}
+.il-wrap{display:flex;align-items:baseline;}
+.il-c{font-family:'Lora',Georgia,serif;font-size:56px;font-weight:500;color:#e8eef8;letter-spacing:-0.5px;}
+.il-360{font-family:'Lora',Georgia,serif;font-size:56px;font-weight:400;color:#4d8dd4;letter-spacing:-0.5px;}
+.il-div{width:38px;height:1px;background:rgba(255,255,255,.14);margin:6px auto 2px;}
+.il-tag{font-size:11px;font-weight:300;letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,255,255,.35);}
+.il-sub{font-size:13px;color:rgba(255,255,255,.42);font-weight:300;}
+
+#laptop{position:relative;z-index:10;opacity:0;transform:translateY(20px);transition:opacity .85s ease,transform .85s ease;}
+#laptop.vis{opacity:1;transform:translateY(0);}
+.lap-glow{position:absolute;inset:-70px -90px;pointer-events:none;background:radial-gradient(ellipse at 50% 50%,rgba(37,99,168,.19) 0%,transparent 65%);animation:agl 4s ease-in-out infinite alternate;}
+@keyframes agl{from{opacity:.7}to{opacity:1.15}}
+.lap-shell{background:linear-gradient(155deg,#252d3e 0%,#1b2031 100%);border-radius:14px 14px 0 0;padding:10px 10px 0;box-shadow:0 0 0 1px rgba(255,255,255,.07),0 0 0 2.5px #0d1120,0 60px 130px rgba(0,0,0,.88),0 28px 55px rgba(0,0,0,.5);}
+.bezel-top{height:16px;display:flex;align-items:center;justify-content:center;}
+.cam-dot{width:5px;height:5px;border-radius:50%;background:#141927;box-shadow:inset 0 0 0 1px rgba(255,255,255,.09);}
+.screen{width:960px;height:640px;overflow:hidden;position:relative;border-radius:3px;background:#f7f9fc;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15);}
+.screen::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:9999;background:linear-gradient(135deg,rgba(255,255,255,.065) 0%,transparent 42%);}
+#camera{width:960px;position:relative;transform-origin:50% 30%;transition:transform 1.45s cubic-bezier(.4,0,.2,1);will-change:transform;}
+.lap-chin{width:980px;height:27px;margin:0 -10px;background:linear-gradient(180deg,#1d2436 0%,#171b2b 100%);border-radius:0 0 9px 9px;display:flex;align-items:center;justify-content:center;}
+.chin-mark{width:46px;height:2px;background:rgba(255,255,255,.07);border-radius:1px;}
+
+#cursor{position:fixed;z-index:9999;width:22px;height:22px;pointer-events:none;transform:translate(-50%,-50%);opacity:0;transition:left .72s cubic-bezier(.4,0,.2,1),top .72s cubic-bezier(.4,0,.2,1),opacity .3s;}
+#cursor.vis{opacity:1;}
+#cursor.fast{transition:left .32s cubic-bezier(.4,0,.2,1),top .32s cubic-bezier(.4,0,.2,1),opacity .3s;}
+.c-ring{position:absolute;inset:0;border:1.5px solid rgba(255,255,255,.88);border-radius:50%;transition:transform .12s,border-color .12s;}
+.c-dot{position:absolute;width:5px;height:5px;border-radius:50%;background:#fff;top:50%;left:50%;transform:translate(-50%,-50%);transition:transform .12s;}
+#cursor.on-app .c-ring{border-color:rgba(37,99,168,.92);}
+#cursor.on-app .c-dot{background:#2563a8;}
+#cursor.click .c-ring{transform:scale(.62);}
+#cursor.click .c-dot{transform:translate(-50%,-50%) scale(1.7);}
+
+#caption{position:fixed;bottom:26px;left:50%;transform:translateX(-50%);z-index:400;background:rgba(9,13,22,.87);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.1);border-radius:24px;padding:8px 22px;font-size:12.5px;color:rgba(255,255,255,.82);letter-spacing:.2px;opacity:0;transition:opacity .5s;pointer-events:none;white-space:nowrap;}
+#caption.vis{opacity:1;}
+
+.callout{position:fixed;z-index:600;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:11px 15px;max-width:220px;box-shadow:0 8px 30px rgba(0,0,0,.13),0 2px 8px rgba(0,0,0,.07);opacity:0;transform:translateY(9px) scale(.95);transition:opacity .4s,transform .4s;pointer-events:none;}
+.callout.vis{opacity:1;transform:translateY(0) scale(1);}
+.co-t{font-weight:500;font-size:12px;color:#1a2e4a;margin-bottom:4px;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px;}
+.co-b{font-size:11.5px;color:#4a5f78;line-height:1.5;font-family:'DM Sans',sans-serif;}
+.co-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+
+#progress{position:fixed;bottom:0;left:0;height:2px;background:linear-gradient(90deg,#2563a8,#60a5e8);width:0%;transition:width .5s linear;z-index:9998;opacity:.65;}
+#replay{position:fixed;bottom:26px;right:26px;z-index:700;background:rgba(255,255,255,.09);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.18);color:rgba(255,255,255,.75);font-family:'DM Sans',sans-serif;font-size:12px;padding:7px 18px;border-radius:20px;cursor:pointer;opacity:0;transition:opacity .5s,background .2s;}
+#replay:hover{background:rgba(255,255,255,.17);}
+#replay.vis{opacity:1;}
+
+/* â•â•â• APP STYLES â€” exact match to globals.css â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+#app-root{
+  --navy:#1a2e4a;--accent:#2563a8;--accent-lt:#eef4fc;
+  --ink:#1c2b3a;--ink2:#4a5f78;--ink3:#8a9db5;
+  --line:#e2e8f0;--line2:#edf2f7;--bg:#f7f9fc;--white:#fff;
+  --covered:#0f7251;--covered-bg:#edf7f3;--covered-br:#b0dece;
+  --restricted:#854f0b;--restricted-bg:#fef6ea;--restricted-br:#f5d18a;
+  --denied:#a32d2d;--denied-bg:#fdf1f1;--denied-br:#f0b8b8;
+  --serif:'Lora',Georgia,serif;--sans:'DM Sans',system-ui,sans-serif;
+  --mono:'DM Mono',monospace;--r:8px;--rl:12px;
+  width:960px;height:640px;background:var(--bg);color:var(--ink);
+  font-family:var(--sans);font-size:13.5px;line-height:1.5;
+  display:flex;flex-direction:column;overflow:hidden;
+}
+
+/* Topbar */
+.topbar{background:var(--white);border-bottom:1px solid var(--line);padding:0 28px;height:54px;display:flex;align-items:center;flex-shrink:0;}
+.logo{display:flex;align-items:baseline;}
+.logo-main{font-family:var(--serif);font-size:20px;font-weight:500;color:var(--navy);}
+.logo-360{font-family:var(--serif);font-size:20px;font-weight:400;color:var(--accent);}
+.logo-tag{font-size:10px;color:var(--ink3);font-weight:300;margin-left:10px;letter-spacing:.2px;align-self:center;}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:10px;}
+.payer-pill{font-size:11px;color:var(--ink2);background:var(--bg);border:1px solid var(--line);border-radius:20px;padding:3px 10px;}
+.btn-ghost{font-size:12px;font-weight:500;font-family:var(--sans);color:var(--accent);background:transparent;border:1px solid var(--line);border-radius:6px;padding:6px 13px;cursor:pointer;}
+.btn-solid{font-size:12px;font-weight:500;font-family:var(--sans);color:#fff;background:var(--accent);border:1px solid var(--accent);border-radius:6px;padding:6px 13px;cursor:pointer;transition:opacity .15s;}
+
+/* Shell â€” sidebar + center-col + chat-panel */
+.shell{display:flex;flex:1;min-height:0;overflow:hidden;}
+
+/* Sidebar */
+.sidebar{width:196px;min-width:196px;background:var(--white);border-right:1px solid var(--line);padding:20px 0;display:flex;flex-direction:column;flex-shrink:0;}
+.sb-item{display:flex;align-items:center;gap:9px;padding:9px 18px;font-size:13px;color:var(--ink2);cursor:pointer;border-left:2px solid transparent;transition:all .12s;background:none;border-top:none;border-right:none;border-bottom:none;font-family:var(--sans);text-align:left;width:100%;}
+.sb-item:hover{background:var(--bg);color:var(--ink);}
+.sb-item.on{background:var(--accent-lt);color:var(--accent);border-left-color:var(--accent);font-weight:500;}
+.sb-icon{width:15px;height:15px;flex-shrink:0;stroke:currentColor;stroke-width:1.6;fill:none;}
+.sb-divider{height:1px;background:var(--line);margin:14px 18px;}
+.sb-label{font-size:10px;font-weight:500;letter-spacing:1px;text-transform:uppercase;color:var(--ink3);padding:0 18px;margin-bottom:4px;margin-top:2px;}
+.sb-badge{margin-left:auto;background:var(--denied-bg);color:var(--denied);font-size:10px;font-family:var(--mono);padding:1px 6px;border-radius:10px;}
+
+/* Center column */
+.center-col{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden;}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.search-hero{background:var(--white);border-bottom:1px solid var(--line);padding:28px 36px 22px;flex-shrink:0;}
+.search-eyebrow{font-size:11px;font-weight:500;letter-spacing:.9px;text-transform:uppercase;color:var(--ink3);margin-bottom:10px;}
+.search-bar{display:flex;gap:10px;align-items:center;}
+.search-wrap{flex:1;position:relative;}
+.search-input{width:100%;background:var(--bg);border:1.5px solid var(--line);border-radius:var(--r);color:var(--ink);font-family:var(--sans);font-size:14px;padding:12px 14px 12px 40px;outline:none;transition:border-color .15s;}
+.search-input.focused{border-color:var(--accent);background:var(--white);}
+.s-ico{position:absolute;left:13px;top:50%;transform:translateY(-50%);}
+.recent-row{display:flex;align-items:center;gap:8px;margin-top:10px;}
+.recent-lbl{font-size:11px;color:var(--ink3);font-weight:300;}
+.recent-tag{font-size:12px;color:var(--accent);cursor:pointer;padding:2px 8px;border-radius:4px;background:var(--accent-lt);border:none;font-family:var(--sans);}
+.idx-stats{margin-left:auto;font-size:11px;color:var(--ink3);font-weight:300;}
+
+.content{flex:1;padding:28px 36px;display:flex;flex-direction:column;gap:22px;overflow-y:auto;}
+
+/* Shared view state */
+.view-section{display:none;flex-direction:column;gap:22px;}
+.view-section.vis{display:flex;}
+.view-header{flex-shrink:0;}
+.view-title{font-family:var(--serif);font-size:20px;font-weight:500;color:var(--navy);letter-spacing:-.2px;}
+.view-sub{font-size:12px;color:var(--ink3);margin-top:3px;}
+
+/* Result */
+.result-top{display:flex;align-items:flex-start;justify-content:space-between;flex-shrink:0;}
+.drug-name{font-family:var(--serif);font-size:22px;font-weight:500;color:var(--navy);letter-spacing:-.3px;}
+.drug-generic{font-size:12px;color:var(--ink3);font-weight:300;margin-top:3px;}
+.drug-tags{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;}
+.dtag{font-size:11px;font-family:var(--mono);padding:2px 8px;border-radius:4px;background:var(--bg);color:var(--ink2);border:1px solid var(--line);}
+.burden-badge{display:flex;flex-direction:column;align-items:center;justify-content:center;width:68px;height:68px;border-radius:50%;border:2px solid var(--restricted-br);background:var(--restricted-bg);transition:transform .3s,box-shadow .3s;}
+.burden-badge.hl{transform:scale(1.15);box-shadow:0 0 0 8px rgba(133,79,11,.11),0 0 22px rgba(133,79,11,.16);}
+.burden-num{font-family:var(--serif);font-size:20px;font-weight:500;color:var(--restricted);line-height:1;}
+.burden-lbl{font-size:9px;color:var(--restricted);font-family:var(--mono);letter-spacing:.3px;margin-top:2px;}
+
+/* Card */
+.card{background:var(--white);border:1px solid var(--line);border-radius:var(--rl);}
+.card-head{padding:13px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;}
+.card-title{font-size:12px;font-weight:500;color:var(--ink);}
+.card-action{font-size:11px;color:var(--accent);cursor:pointer;background:none;border:none;font-family:var(--sans);}
+.card-body{padding:18px 20px;}
+
+/* Coverage table */
+.ctable{width:100%;border-collapse:collapse;}
+.ctable th{font-size:10px;font-weight:500;letter-spacing:.7px;text-transform:uppercase;color:var(--ink3);padding:0 8px 9px;text-align:left;border-bottom:1px solid var(--line);}
+.ctable td{padding:13px 8px;border-bottom:1px solid var(--line2);font-size:12.5px;vertical-align:top;}
+.ctable tr:last-child td{border-bottom:none;}
+.pnm{font-weight:500;color:var(--ink);font-size:13px;}
+.pill{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:500;padding:3px 9px;border-radius:20px;white-space:nowrap;}
+.pill-c{background:var(--covered-bg);color:var(--covered);border:1px solid var(--covered-br);}
+.pill-r{background:var(--restricted-bg);color:var(--restricted);border:1px solid var(--restricted-br);}
+.pill-d{background:var(--denied-bg);color:var(--denied);border:1px solid var(--denied-br);}
+.pdot{width:5px;height:5px;border-radius:50%;background:currentColor;}
+.crit{font-size:12px;color:var(--ink2);line-height:1.5;}
+.crit b{color:var(--ink);font-weight:500;}
+.eff{font-size:11px;color:var(--ink3);font-family:var(--mono);}
+.ctable tbody tr{transition:background .35s;}
+.ctable tbody tr.hl{background:rgba(37,99,168,.05);}
+
+/* Persistent chat panel */
+.chat-panel{width:300px;min-width:300px;background:var(--white);border-left:1px solid var(--line);display:flex;flex-direction:column;flex-shrink:0;}
+.chat-panel-head{padding:13px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.chat-panel-title{font-size:12px;font-weight:500;color:var(--ink);}
+.chat-panel-grounded{font-size:10.5px;color:var(--covered);}
+.chat-panel-body{flex:1;display:flex;flex-direction:column;padding:16px;overflow:hidden;}
+.chat-panel-well{flex:1;display:flex;flex-direction:column;gap:9px;overflow-y:auto;min-height:0;margin-bottom:10px;}
+.chat-panel-empty{font-size:12px;color:var(--ink3);line-height:1.6;padding:8px 0;}
+.chat-msg{padding:10px 13px;border-radius:var(--r);font-size:12.5px;line-height:1.6;}
+.chat-u{background:var(--accent-lt);color:var(--accent);border:1px solid #c7dcf5;font-style:italic;}
+.chat-a{background:var(--bg);color:var(--ink);border:1px solid var(--line);}
+.chat-src{font-size:10px;color:var(--ink3);margin-top:5px;padding-top:5px;border-top:1px solid var(--line);font-family:var(--mono);}
+.chat-input-row{display:flex;align-items:center;gap:8px;width:100%;flex-shrink:0;}
+.chat-input{flex:1 1 auto;min-width:0;background:var(--bg);border:1px solid var(--line);border-radius:var(--r);color:var(--ink);font-family:var(--sans);font-size:12.5px;padding:9px 12px;outline:none;transition:border-color .15s;}
+.chat-input.focused{border-color:var(--accent);background:#fff;}
+.chat-send-btn{flex:0 0 auto;font-size:12px;padding:9px 12px;white-space:nowrap;}
+
+/* Trust bar */
+.trust-bar{background:var(--white);border-top:1px solid var(--line);padding:9px 28px;display:flex;align-items:center;gap:22px;flex-shrink:0;height:38px;transition:background .4s;}
+.trust-bar.hl{background:var(--accent-lt);}
+.ti{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--ink3);font-weight:300;transition:color .4s;}
+.trust-bar.hl .ti{color:var(--ink2);}
+.tico{width:12px;height:12px;stroke:var(--ink3);stroke-width:1.6;fill:none;}
+
+/* â”€â”€ Heatmap (exact match to component) â”€â”€ */
+.hm-meta{font-size:11px;color:var(--ink3);font-family:var(--mono);}
+.hm-legend{display:flex;align-items:center;gap:16px;margin-bottom:16px;flex-wrap:wrap;}
+.hm-legend-item{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--ink2);}
+.hm-legend-swatch{width:10px;height:10px;border-radius:999px;flex-shrink:0;}
+.hm-legend-swatch.hm-covered{background:var(--covered);}
+.hm-legend-swatch.hm-restricted{background:var(--restricted);}
+.hm-legend-swatch.hm-denied{background:var(--denied);}
+.hm-legend-swatch.hm-unknown{background:#b9c5d3;}
+.hm-wrap{overflow-x:auto;}
+.hm-table{width:100%;border-collapse:separate;border-spacing:0;}
+.hm-table thead th{border-bottom:1px solid var(--line);}
+.hm-table tbody td{border-bottom:1px solid var(--line2);vertical-align:top;}
+.hm-table tbody tr:last-child td{border-bottom:none;}
+.hm-drug-head,.hm-payer-head{font-size:10px;font-weight:500;letter-spacing:.8px;text-transform:uppercase;color:var(--ink3);padding:0 14px 10px;text-align:left;white-space:nowrap;}
+.hm-drug-head{padding-left:0;}
+.hm-drug-label{font-size:13px;color:var(--ink);padding:16px 14px 16px 0;white-space:nowrap;vertical-align:top;font-weight:500;}
+.hm-td{padding:10px 12px 10px 0;}
+.hm-cell{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px 13px;min-height:76px;
+  opacity:0;transform:scale(.9);transition:opacity .35s,transform .35s;}
+.hm-cell.pop{opacity:1;transform:scale(1);}
+.hm-cell.hl{box-shadow:0 0 0 2px var(--accent),0 4px 14px rgba(37,99,168,.14);}
+.hm-chip-row{margin-bottom:8px;}
+.hm-chip{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:500;padding:4px 8px;border-radius:999px;white-space:nowrap;}
+.hm-chip-covered{background:var(--covered-bg);color:var(--covered);border:1px solid var(--covered-br);}
+.hm-chip-restricted{background:var(--restricted-bg);color:var(--restricted);border:1px solid var(--restricted-br);}
+.hm-chip-denied{background:var(--denied-bg);color:var(--denied);border:1px solid var(--denied-br);}
+.hm-chip-unknown{background:#eef2f6;color:#708294;border:1px solid #d5dee7;}
+.hm-cell-dot{width:6px;height:6px;border-radius:999px;flex-shrink:0;background:currentColor;}
+.hm-note{font-size:11.5px;line-height:1.5;color:var(--ink2);}
+
+/* â”€â”€ Compare â”€â”€ */
+.compare-drug-header{margin-bottom:20px;}
+.compare-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;align-items:start;}
+.compare-card{background:var(--white);border:1px solid var(--line);border-radius:var(--rl);overflow:hidden;
+  opacity:0;transform:translateY(8px);transition:opacity .45s,transform .45s,box-shadow .2s;}
+.compare-card.pop{opacity:1;transform:translateY(0);}
+.compare-card.hl{box-shadow:0 0 0 2px var(--accent),0 6px 22px rgba(37,99,168,.14);}
+.compare-card-accent{height:4px;}
+.compare-card-accent.cca-covered{background:var(--covered);}
+.compare-card-accent.cca-restricted{background:var(--restricted);}
+.compare-card-accent.cca-denied{background:var(--denied);}
+.compare-card-head{padding:14px 18px 12px;border-bottom:1px solid var(--line);display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
+.compare-card-payer{font-size:15px;font-weight:500;color:var(--navy);font-family:var(--serif);line-height:1.2;}
+.compare-fields{padding:0;}
+.compare-field{display:flex;align-items:flex-start;gap:12px;padding:11px 18px;border-bottom:1px solid var(--line2);}
+.compare-field:last-child{border-bottom:none;}
+.compare-field-icon{width:14px;height:14px;flex-shrink:0;margin-top:1px;stroke:var(--ink3);stroke-width:1.5;fill:none;}
+.compare-field-body{flex:1;min-width:0;}
+.compare-field-label{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.7px;color:var(--ink3);margin-bottom:2px;}
+.compare-field-value{font-size:12.5px;color:var(--ink2);line-height:1.5;}
+.cfv-yes{color:var(--covered);font-weight:500;}
+.cfv-no{color:var(--ink3);}
+.cfv-warn{color:var(--restricted);}
+.cfv-mono{font-family:var(--mono);font-size:11px;color:var(--ink3);}
+
+/* â”€â”€ Alerts â”€â”€ */
+.alerts-feed{display:flex;flex-direction:column;gap:0;}
+.alert-item{display:flex;gap:14px;padding:14px 20px;border-bottom:1px solid var(--line2);transition:background .1s,opacity .4s,transform .4s;opacity:0;transform:translateX(-8px);}
+.alert-item:last-child{border-bottom:none;}
+.alert-item.pop{opacity:1;transform:translateX(0);}
+.alert-item.hl{background:var(--bg);}
+.alert-bar{width:3px;border-radius:3px;flex-shrink:0;align-self:stretch;min-height:36px;}
+.alert-item.alert-positive .alert-bar{background:var(--covered);}
+.alert-item.alert-warning .alert-bar{background:var(--restricted);}
+.alert-item.alert-negative .alert-bar{background:var(--denied);}
+.alert-body{flex:1;min-width:0;}
+.alert-meta{display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;}
+.alert-drug{font-size:12.5px;font-weight:500;color:var(--ink);}
+.alert-payer{font-size:11px;color:var(--ink3);font-family:var(--mono);}
+.alert-date{font-size:11px;color:var(--ink3);margin-left:auto;white-space:nowrap;}
+.alert-summary{font-size:12.5px;color:var(--ink2);line-height:1.55;}
+.alert-ref{font-size:10.5px;color:var(--ink3);font-family:var(--mono);margin-top:4px;}
+.alert-type-badge{font-size:10px;font-weight:500;padding:1px 7px;border-radius:10px;white-space:nowrap;}
+.alert-item.alert-positive .alert-type-badge{background:var(--covered-bg);color:var(--covered);border:1px solid var(--covered-br);}
+.alert-item.alert-warning .alert-type-badge{background:var(--restricted-bg);color:var(--restricted);border:1px solid var(--restricted-br);}
+.alert-item.alert-negative .alert-type-badge{background:var(--denied-bg);color:var(--denied);border:1px solid var(--denied-br);}
+</style>
+</head>
+<body>
+
+<!-- Intro -->
+<div id="intro">
+  <div class="il-wrap"><span class="il-c">Coverage</span><span class="il-360">360</span></div>
+  <div class="il-div"></div>
+  <div class="il-tag">Medical Benefit Drug Intelligence</div>
+  <div class="il-sub">by Anton Rx Â· Analyst Portal</div>
+</div>
+
+<!-- Stage -->
+<div id="stage">
+  <div id="laptop">
+    <div class="lap-glow"></div>
+    <div class="lap-shell">
+      <div class="bezel-top"><div class="cam-dot"></div></div>
+      <div class="screen">
+        <div id="camera">
+          <div id="app-root">
+
+            <!-- Topbar -->
+            <div class="topbar">
+              <div class="logo">
+                <span class="logo-main">Coverage</span><span class="logo-360">360</span>
+                <span class="logo-tag">by Anton Rx Â· Analyst Portal</span>
+              </div>
+              <div class="topbar-right">
+                <span class="payer-pill">UnitedHealth</span>
+                <span class="payer-pill">Cigna</span>
+                <span class="payer-pill">Priority Health</span>
+                <button class="btn-ghost">Upload PDF</button>
+                <button class="btn-solid">+ Add payer</button>
+              </div>
+            </div>
+
+            <!-- Shell: sidebar + center-col + chat-panel -->
+            <div class="shell">
+
+              <!-- Sidebar â€” no Policy diff, no Intelligence -->
+              <aside class="sidebar">
+                <button class="sb-item on" id="sb-search">
+                  <svg class="sb-icon" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5l3 3" stroke-linecap="round"/></svg>
+                  Search
+                </button>
+                <div class="sb-divider"></div>
+                <div class="sb-label">Explore</div>
+                <button class="sb-item" id="sb-heatmap">
+                  <svg class="sb-icon" viewBox="0 0 16 16"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M5 5.5h6M5 8h4M5 10.5h5"/></svg>
+                  Heatmap
+                </button>
+                <button class="sb-item" id="sb-compare">
+                  <svg class="sb-icon" viewBox="0 0 16 16"><rect x="2" y="3" width="5" height="10" rx="1"/><rect x="9" y="5" width="5" height="8" rx="1"/></svg>
+                  Compare
+                </button>
+                <div class="sb-divider"></div>
+                <button class="sb-item" id="sb-alerts">
+                  <svg class="sb-icon" viewBox="0 0 16 16"><path d="M8 2a5 5 0 100 10A5 5 0 008 2z"/><path d="M8 6v3" stroke-linecap="round"/><circle cx="8" cy="10.5" r=".6" fill="currentColor" stroke="none"/></svg>
+                  Alerts
+                  <span class="sb-badge" id="alertBadge">3</span>
+                </button>
+              </aside>
+
+              <!-- Center column -->
+              <div class="center-col">
+                <div class="main">
+                  <!-- Search hero (always shown) -->
+                  <div class="search-hero">
+                    <div class="search-eyebrow">Medical benefit drug coverage</div>
+                    <div class="search-bar">
+                      <div class="search-wrap">
+                        <div class="s-ico">
+                          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#8a9db5" stroke-width="1.6"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5l3 3" stroke-linecap="round"/></svg>
+                        </div>
+                        <input id="searchInput" class="search-input" value="Rituximab" placeholder="Drug name, generic, or J-codeâ€¦" readonly>
+                      </div>
+                      <button id="searchBtn" class="btn-solid" style="padding:12px 22px;font-size:13px;">Search</button>
+                    </div>
+                    <div class="recent-row">
+                      <span class="recent-lbl">Recent:</span>
+                      <span class="recent-tag">Adalimumab</span>
+                      <span class="recent-tag">Bevacizumab</span>
+                      <span class="recent-tag">Pembrolizumab</span>
+                      <span class="idx-stats">847 policies indexed Â· 3 payers Â· Updated Apr 4, 2026</span>
+                    </div>
+                  </div>
+
+                  <!-- Content area -->
+                  <div class="content">
+
+                    <!-- VIEW: Search results -->
+                    <div id="view-search" class="view-section">
+                      <div class="result-top">
+                        <div>
+                          <div class="drug-name">Rituximab</div>
+                          <div class="drug-generic">rituximab-abbs Â· Truxima Â· Ruxience</div>
+                          <div class="drug-tags">
+                            <span class="dtag">J9312</span>
+                            <span class="dtag">CD20 monoclonal Ab</span>
+                            <span class="dtag">Oncology / Rheumatology</span>
+                            <span class="dtag">Biologic</span>
+                          </div>
+                        </div>
+                        <div class="burden-badge" id="burdenBadge">
+                          <div class="burden-num">62</div>
+                          <div class="burden-lbl">burden</div>
+                        </div>
+                      </div>
+                      <div class="card" id="tableCard">
+                        <div class="card-head">
+                          <span class="card-title">Coverage across payers</span>
+                          <span class="card-action">Export CSV â†’</span>
+                        </div>
+                        <div class="card-body">
+                          <table class="ctable">
+                            <thead>
+                              <tr>
+                                <th style="width:108px;">Payer</th>
+                                <th style="width:90px;">Status</th>
+                                <th>Criteria summary</th>
+                                <th style="width:66px;text-align:right;">Effective</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr id="row-0"><td><div class="pnm">UnitedHealth</div></td><td><span class="pill pill-c"><span class="pdot"></span>Covered</span></td><td><div class="crit"><b>PA required.</b> CD20+ confirmed. Prior anthracycline required. No step therapy.</div></td><td><div class="eff" style="text-align:right;">Jan 2026</div></td></tr>
+                              <tr id="row-1"><td><div class="pnm">Cigna</div></td><td><span class="pill pill-r"><span class="pdot"></span>Restricted</span></td><td><div class="crit"><b>Step therapy.</b> Biosimilar trial â‰¥12 wks before brand. PA required.</div></td><td><div class="eff" style="text-align:right;">Feb 2026</div></td></tr>
+                              <tr id="row-2"><td><div class="pnm">Priority Health</div></td><td><span class="pill pill-c"><span class="pdot"></span>Covered</span></td><td><div class="crit"><b>PA required.</b> Oncology only. Ambulatory infusion site preferred.</div></td><td><div class="eff" style="text-align:right;">Jan 2026</div></td></tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div><!-- #view-search -->
+
+                    <!-- VIEW: Heatmap â€” matches CoverageHeatmap.jsx exactly -->
+                    <div id="view-heatmap" class="view-section">
+                      <div class="view-header">
+                        <div class="view-title">Coverage heatmap</div>
+                        <div class="view-sub">At-a-glance coverage status across all indexed drugs and payers.</div>
+                      </div>
+                      <div class="card">
+                        <div class="card-head">
+                          <span class="card-title">Coverage heatmap</span>
+                          <span class="hm-meta">6 drugs Â· 3 payers</span>
+                        </div>
+                        <div class="card-body">
+                          <div class="hm-legend">
+                            <div class="hm-legend-item"><span class="hm-legend-swatch hm-covered"></span>Covered</div>
+                            <div class="hm-legend-item"><span class="hm-legend-swatch hm-restricted"></span>Restricted</div>
+                            <div class="hm-legend-item"><span class="hm-legend-swatch hm-denied"></span>Not covered</div>
+                            <div class="hm-legend-item"><span class="hm-legend-swatch hm-unknown"></span>No data</div>
+                          </div>
+                          <div class="hm-wrap">
+                            <table class="hm-table">
+                              <thead>
+                                <tr>
+                                  <th class="hm-drug-head">Drug</th>
+                                  <th class="hm-payer-head">UnitedHealth</th>
+                                  <th class="hm-payer-head">Cigna</th>
+                                  <th class="hm-payer-head">Priority Health</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                <tr>
+                                  <td class="hm-drug-label">Rituximab</td>
+                                  <td class="hm-td"><div class="hm-cell" id="hm-0-0"><div class="hm-chip-row"><span class="hm-chip hm-chip-covered"><span class="hm-cell-dot"></span>Covered</span></div><div class="hm-note">PA required. No step therapy.</div></div></td>
+                                  <td class="hm-td"><div class="hm-cell" id="hm-0-1"><div class="hm-chip-row"><span class="hm-chip hm-chip-restricted"><span class="hm-cell-dot"></span>Restricted</span></div><div class="hm-note">Biosimilar trial â‰¥12 wks required.</div></div></td>
+                                  <td class="hm-td"><div class="hm-cell" id="hm-0-2"><div class="hm-chip-row"><span class="hm-chip hm-chip-covered"><span class="hm-cell-dot"></span>Covered</span></div><div class="hm-note">Oncology only. PA required.</div></div></td>
+                                </tr>
+                                <tr>
+                                  <td class="hm-drug-label">Adalimumab</td>
+                                  <td class="hm-td"><div class="hm-cell" id="hm-1-0"><div class="hm-chip-row"><span class="hm-chip hm-chip-covered"><span class="hm-cell-dot"></span>Covered</span></div><div class="hm-note">PA required for all indications.</div></div></td>
+                                  <td class="hm-td"><div class="hm-cell" id="hm-1-1"><div class="hm-chip-row"><span class="hm-chip hm-chip-covered"><span class="hm-cell-dot"></span>Covered</span></div><div class="hm-note">PA required. Step therapy waived.</div></div></td>
+                                  <td class="hm-td"><div class="hm-cell" id="hm-1-2"><div class="hm-chip-row"><span class="hm-chip hm-chip-restricted"><span class="hm-cell-dot"></span>Restricted</span></div><div class="hm-note">Biosimilar preferred first.</div></div></td>
+                                </tr>
+                                <tr>
+                                  <td class="hm-drug-label">Bevacizumab</td>
+                                  <td class="hm-td"><div class="hm-cell" id="hm-2-0"><div class="hm-chip-row"><span class="hm-chip hm-chip-restricted"><span class="hm-cell-dot"></span>Restricted</span></div><div class="hm-note">Site-of-care restriction applies.</div></div></td>
+                                  <td class="hm-td"><div class="hm-cell" id="hm-2-1"><div class="hm-chip-row"><span class="hm-chip hm-chip-denied"><span class="hm-cell-dot"></span>Not covered</span></div><div class="hm-note">Excluded per 2026 drug list.</div></div></td>
+                                  <td class="hm-td"><div class="hm-cell" id="hm-2-2"><div class="hm-chip-row"><span class="hm-chip hm-chip-covered"><span class="hm-cell-dot"></span>Covered</span></div><div class="hm-note">Oncology indication only.</div></div></td>
+                                </tr>
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </div>
+                    </div><!-- #view-heatmap -->
+
+                    <!-- VIEW: Compare â€” matches CompareView.jsx exactly -->
+                    <div id="view-compare" class="view-section">
+                      <div class="view-header">
+                        <div class="view-title">Payer comparison</div>
+                        <div class="view-sub">Side-by-side PA criteria, step therapy, and site-of-care restrictions across all payers.</div>
+                      </div>
+                      <div class="compare-drug-header">
+                        <div class="drug-name" style="font-size:18px;">Rituximab</div>
+                        <div class="drug-generic">rituximab-abbs Â· Truxima Â· Ruxience</div>
+                        <div class="drug-tags" style="margin-top:8px;">
+                          <span class="dtag">J9312</span><span class="dtag">CD20 monoclonal Ab</span><span class="dtag">Biologic</span>
+                        </div>
+                      </div>
+                      <div class="compare-grid">
+                        <div class="compare-card" id="cmp-0">
+                          <div class="compare-card-accent cca-covered"></div>
+                          <div class="compare-card-head">
+                            <div class="compare-card-payer">UnitedHealth</div>
+                            <span class="pill pill-c"><span class="pdot"></span>Covered</span>
+                          </div>
+                          <div class="compare-fields">
+                            <div class="compare-field">
+                              <svg class="compare-field-icon" viewBox="0 0 16 16"><path d="M8 2l4 2v4c0 3-4 5-4 5S4 11 4 8V4l4-2z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                              <div class="compare-field-body"><div class="compare-field-label">Prior auth</div><div class="compare-field-value cfv-warn">Required</div></div>
+                            </div>
+                            <div class="compare-field">
+                              <svg class="compare-field-icon" viewBox="0 0 16 16"><path d="M3 4h10M5 8h8M7 12h4" stroke-linecap="round"/></svg>
+                              <div class="compare-field-body"><div class="compare-field-label">Step therapy</div><div class="compare-field-value cfv-no">None</div></div>
+                            </div>
+                            <div class="compare-field">
+                              <svg class="compare-field-icon" viewBox="0 0 16 16"><path d="M8 2a4 4 0 100 8A4 4 0 008 2z"/><path d="M8 14v-4" stroke-linecap="round"/></svg>
+                              <div class="compare-field-body"><div class="compare-field-label">Site of care</div><div class="compare-field-value cfv-warn">Ambulatory preferred</div></div>
+                            </div>
+                            <div class="compare-field">
+                              <svg class="compare-field-icon" viewBox="0 0 16 16"><path d="M3 4h10M3 8h7M3 12h9" stroke-linecap="round"/></svg>
+                              <div class="compare-field-body"><div class="compare-field-label">Key criteria</div><div class="compare-field-value">CD20+ confirmed. Prior anthracycline required.</div></div>
+                            </div>
+                            <div class="compare-field">
+                              <svg class="compare-field-icon" viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M5 2v2M11 2v2M2 7h12" stroke-linecap="round"/></svg>
+                              <div class="compare-field-body"><div class="compare-field-label">Effective</div><div class="compare-field-value cfv-mono">Jan 2026</div></div>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="compare-card" id="cmp-1">
+                          <div class="compare-card-accent cca-restricted"></div>
+                          <div class="compare-card-head">
+                            <div class="compare-card-payer">Cigna</div>
+                            <span class="pill pill-r"><span class="pdot"></span>Restricted</span>
+                          </div>
+                          <div class="compare-fields">
+                            <div class="compare-field">
+                              <svg class="compare-field-icon" viewBox="0 0 16 16"><path d="M8 2l4 2v4c0 3-4 5-4 5S4 11 4 8V4l4-2z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                              <div class="compare-field-body"><div class="compare-field-label">Prior auth</div><div class="compare-field-value cfv-warn">Required</div></div>
+                            </div>
+                            <div class="compare-field">
+                              <svg class="compare-field-icon" viewBox="0 0 16 16"><path d="M3 4h10M5 8h8M7 12h4" stroke-linecap="round"/></svg>
+                              <div class="compare-field-body"><div class="compare-field-label">Step therapy</div><div class="compare-field-value cfv-warn">Try biosimilar first (â‰¥12 weeks)</div></div>
+                            </div>
+                            <div class="compare-field">
+                              <svg class="compare-field-icon" viewBox="0 0 16 16"><path d="M8 2a4 4 0 100 8A4 4 0 008 2z"/><path d="M8 14v-4" stroke-linecap="round"/></svg>
+                              <div class="compare-field-body"><div class="compare-field-label">Site of care</div><div class="compare-field-value cfv-no">No restriction</div></div>
+                            </div>
+                            <div class="compare-field">
+                              <svg class="compare-field-icon" viewBox="0 0 16 16"><path d="M3 4h10M3 8h7M3 12h9" stroke-linecap="round"/></svg>
+                              <div class="compare-field-body"><div class="compare-field-label">Key criteria</div><div class="compare-field-value">Oncology indication documented. Biosimilar trial required.</div></div>
+                            </div>
+                            <div class="compare-field">
+                              <svg class="compare-field-icon" viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M5 2v2M11 2v2M2 7h12" stroke-linecap="round"/></svg>
+                              <div class="compare-field-body"><div class="compare-field-label">Effective</div><div class="compare-field-value cfv-mono">Feb 2026</div></div>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="compare-card" id="cmp-2">
+                          <div class="compare-card-accent cca-covered"></div>
+                          <div class="compare-card-head">
+                            <div class="compare-card-payer">Priority Health</div>
+                            <span class="pill pill-c"><span class="pdot"></span>Covered</span>
+                          </div>
+                          <div class="compare-fields">
+                            <div class="compare-field">
+                              <svg class="compare-field-icon" viewBox="0 0 16 16"><path d="M8 2l4 2v4c0 3-4 5-4 5S4 11 4 8V4l4-2z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                              <div class="compare-field-body"><div class="compare-field-label">Prior auth</div><div class="compare-field-value cfv-warn">Required</div></div>
+                            </div>
+                            <div class="compare-field">
+                              <svg class="compare-field-icon" viewBox="0 0 16 16"><path d="M3 4h10M5 8h8M7 12h4" stroke-linecap="round"/></svg>
+                              <div class="compare-field-body"><div class="compare-field-label">Step therapy</div><div class="compare-field-value cfv-no">None</div></div>
+                            </div>
+                            <div class="compare-field">
+                              <svg class="compare-field-icon" viewBox="0 0 16 16"><path d="M8 2a4 4 0 100 8A4 4 0 008 2z"/><path d="M8 14v-4" stroke-linecap="round"/></svg>
+                              <div class="compare-field-body"><div class="compare-field-label">Site of care</div><div class="compare-field-value cfv-warn">Ambulatory infusion preferred</div></div>
+                            </div>
+                            <div class="compare-field">
+                              <svg class="compare-field-icon" viewBox="0 0 16 16"><path d="M3 4h10M3 8h7M3 12h9" stroke-linecap="round"/></svg>
+                              <div class="compare-field-body"><div class="compare-field-label">Key criteria</div><div class="compare-field-value">Oncology indication only. PA required.</div></div>
+                            </div>
+                            <div class="compare-field">
+                              <svg class="compare-field-icon" viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M5 2v2M11 2v2M2 7h12" stroke-linecap="round"/></svg>
+                              <div class="compare-field-body"><div class="compare-field-label">Effective</div><div class="compare-field-value cfv-mono">Jan 2026</div></div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div><!-- #view-compare -->
+
+                    <!-- VIEW: Alerts â€” matches AlertsPanel.jsx exactly -->
+                    <div id="view-alerts" class="view-section">
+                      <div class="view-header">
+                        <div class="view-title">Policy alerts</div>
+                        <div class="view-sub">Recent coverage changes detected across indexed policies.</div>
+                      </div>
+                      <div class="card">
+                        <div class="card-head">
+                          <span class="card-title">Recent policy changes</span>
+                          <span style="font-size:11px;color:var(--ink3);font-family:var(--mono);">Last 90 days</span>
+                        </div>
+                        <div class="alerts-feed">
+                          <div class="alert-item alert-negative" id="al-0">
+                            <div class="alert-bar"></div>
+                            <div class="alert-body">
+                              <div class="alert-meta">
+                                <span class="alert-drug">Rituximab</span>
+                                <span class="alert-payer">Cigna</span>
+                                <span class="alert-type-badge">Coverage reduced</span>
+                                <span class="alert-date">Feb 3, 2026</span>
+                              </div>
+                              <div class="alert-summary">Biosimilar step-therapy added - brand now requires 12-week trial before authorization.</div>
+                              <div class="alert-ref">Cigna CPB 0656 · Q1 2026 update</div>
+                            </div>
+                          </div>
+                          <div class="alert-item alert-warning" id="al-1">
+                            <div class="alert-bar"></div>
+                            <div class="alert-body">
+                              <div class="alert-meta">
+                                <span class="alert-drug">Rituximab</span>
+                                <span class="alert-payer">UnitedHealth</span>
+                                <span class="alert-type-badge">Policy updated</span>
+                                <span class="alert-date">Jan 1, 2026</span>
+                              </div>
+                              <div class="alert-summary">Prior chemo requirement reduced from 2 regimens to 1. Site of care restricted to ambulatory infusion centers.</div>
+                              <div class="alert-ref">UHC MP-02.093 · Q4 2025 update bulletin</div>
+                            </div>
+                          </div>
+                          <div class="alert-item alert-positive" id="al-2">
+                            <div class="alert-bar"></div>
+                            <div class="alert-body">
+                              <div class="alert-meta">
+                                <span class="alert-drug">Pembrolizumab</span>
+                                <span class="alert-payer">Priority Health</span>
+                                <span class="alert-type-badge">Coverage added</span>
+                                <span class="alert-date">Jan 15, 2026</span>
+                              </div>
+                              <div class="alert-summary">New NSCLC indication added without step therapy requirement. PA still required.</div>
+                              <div class="alert-ref">PH Drug List 2026 · Oncology supplement</div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div><!-- #view-alerts -->
+
+                  </div><!-- .content -->
+
+                  <!-- Trust bar (inside center-col) -->
+                  <div class="trust-bar" id="trustBar">
+                    <div class="ti"><svg class="tico" viewBox="0 0 16 16"><path d="M8 2l4 2v4c0 3-4 5-4 5S4 11 4 8V4l4-2z"/></svg>HIPAA-aligned</div>
+                    <div class="ti"><svg class="tico" viewBox="0 0 16 16"><rect x="3" y="7" width="10" height="7" rx="1"/><path d="M5 7V5a3 3 0 016 0v2"/></svg>Encrypted storage</div>
+                    <div class="ti"><svg class="tico" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M5.5 8l2 2 3-3" stroke-linecap="round" stroke-linejoin="round"/></svg>Source citations on every answer</div>
+                    <div class="ti"><svg class="tico" viewBox="0 0 16 16"><path d="M2 8h12M8 2v12" stroke-linecap="round"/></svg>No cross-org data sharing</div>
+                    <div style="margin-left:auto;font-size:11px;color:var(--ink3);font-weight:300;">Coverage360 · Innovation Hacks 2.0 · April 2026</div>
+                  </div>
+                </div><!-- .main -->
+              </div><!-- .center-col -->
+
+              <!-- Persistent chat panel (always visible, right side) -->
+              <aside class="chat-panel">
+                <div class="chat-panel-head">
+                  <span class="chat-panel-title">Ask a question</span>
+                  <span class="chat-panel-grounded">Grounded in source policies</span>
+                </div>
+                <div class="chat-panel-body">
+                  <div class="chat-panel-well">
+                    <div class="chat-msg chat-u">Which plans cover Rituximab for RA?</div>
+                    <div class="chat-msg chat-a">
+                      <span style="color:var(--covered);font-weight:500;">UnitedHealth</span> and <span style="color:var(--covered);font-weight:500;">Priority Health</span> cover Rituximab for rheumatoid arthritis with prior authorization. <span style="color:var(--restricted);font-weight:500;">Cigna</span> requires a biosimilar step-therapy trial first, effective Feb 2026.
+                      <div class="chat-src">Sources: UHC MP-02.093 · Cigna CPB 0656 · PH Drug List 2026</div>
+                    </div>
+                  </div>
+                  <div class="chat-input-row">
+                    <input class="chat-input" placeholder="Ask about any drug, payer, or policy change...">
+                    <button class="btn-solid chat-send-btn">Ask</button>
+                  </div>
+                </div>
+              </aside>
+
+            </div><!-- .shell -->
+          </div><!-- #app-root -->
+        </div><!-- #camera -->
+      </div><!-- .screen -->
+    </div><!-- .lap-shell -->
+    <div class="lap-chin"><div class="chin-mark"></div></div>
+  </div><!-- #laptop -->
+</div><!-- #stage -->
+
+<!-- Cursor -->
+<div id="cursor"><div class="c-ring"></div><div class="c-dot"></div></div>
+<!-- Caption -->
+<div id="caption"></div>
+
+<!-- Callouts -->
+<div class="callout" id="co-burden">
+  <div class="co-t"><span class="co-dot" style="background:#854f0b;"></span>Burden Score 62 / 100</div>
+  <div class="co-b">Quantifies PA complexity, step therapy, and site-of-care restrictions across all payers.</div>
+</div>
+<div class="callout" id="co-table">
+  <div class="co-t"><span class="co-dot" style="background:#0f7251;"></span>Live policy coverage</div>
+  <div class="co-b">PA criteria, step therapy, and effective dates - extracted directly from ingested PDFs.</div>
+</div>
+<div class="callout" id="co-heatmap">
+  <div class="co-t"><span class="co-dot" style="background:#0f7251;"></span>Coverage heatmap</div>
+  <div class="co-b">Spot restricted and denied drugs across all payers at a glance. No manual digging.</div>
+</div>
+<div class="callout" id="co-compare">
+  <div class="co-t"><span class="co-dot" style="background:#2563a8;"></span>Side-by-side compare</div>
+  <div class="co-b">Every PA criterion, step therapy rule, and restriction - one screen, all payers.</div>
+</div>
+<div class="callout" id="co-alerts">
+  <div class="co-t"><span class="co-dot" style="background:#a32d2d;"></span>Policy change alerts</div>
+  <div class="co-b">Automatically detected when new policy PDFs are ingested. Never miss a change.</div>
+</div>
+
+<div id="progress"></div>
+<button id="replay">Replay</button>
+
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const qs = sel => document.querySelector(sel);
+
+function getCenter(el) {
+  if (!el) return null;
+  const r = el.getBoundingClientRect();
+  return { x: r.left + r.width * 0.5, y: r.top + r.height * 0.5 };
+}
+
+function getRect(el) {
+  return el ? el.getBoundingClientRect() : null;
+}
+
+const CUR = $('cursor');
+function setCursorPos(x, y, instant) {
+  if (instant) {
+    CUR.style.transition = 'none';
+    CUR.style.left = x + 'px';
+    CUR.style.top = y + 'px';
+    requestAnimationFrame(() => requestAnimationFrame(() => { CUR.style.transition = ''; }));
+  } else {
+    CUR.style.left = x + 'px';
+    CUR.style.top = y + 'px';
+  }
+}
+
+function moveTo(elOrId, dx, dy, fast) {
+  const el = typeof elOrId === 'string' ? $(elOrId) : elOrId;
+  if (!el) return;
+  const c = getCenter(el);
+  if (!c) return;
+  if (fast) CUR.classList.add('fast');
+  CUR.style.left = (c.x + (dx || 0)) + 'px';
+  CUR.style.top = (c.y + (dy || 0)) + 'px';
+  if (fast) setTimeout(() => CUR.classList.remove('fast'), 500);
+}
+
+function cursorClick(cb) {
+  CUR.classList.add('click');
+  setTimeout(() => {
+    CUR.classList.remove('click');
+    if (cb) cb();
+  }, 180);
+}
+
+const CAM = {
+  normal: 'scale(1)',
+  search: 'scale(1.06) translateX(-40px)',
+  results: 'scale(1.08) translateX(-40px) translateY(-18px)',
+  table: 'scale(1.09) translateX(-38px) translateY(-22px)',
+  trust: 'scale(1.04) translateX(-40px) translateY(8px)',
+  heatmap: 'scale(1.06) translateX(-40px) translateY(-16px)',
+  compare: 'scale(1.05) translateX(-40px) translateY(-14px)',
+  alerts: 'scale(1.06) translateX(-40px) translateY(-16px)',
+};
+
+function setCam(state) {
+  $('camera').style.transform = CAM[state] || CAM.normal;
+}
+
+let capTimer;
+const CAP = $('caption');
+function setCaption(text) {
+  clearTimeout(capTimer);
+  CAP.textContent = text;
+  CAP.classList.add('vis');
+}
+
+function showCallout(id, targetEl, side, ox, oy) {
+  const co = $(id);
+  const r = getRect(targetEl);
+  ox = ox || 0;
+  oy = oy || 0;
+  if (r) {
+    if (side === 'left') {
+      co.style.left = Math.max(8, r.left - 234 + ox) + 'px';
+      co.style.top = (r.top + oy) + 'px';
+    } else if (side === 'above') {
+      co.style.left = (r.left + ox) + 'px';
+      co.style.top = (r.top - 96 + oy) + 'px';
+    } else if (side === 'below') {
+      co.style.left = (r.left + ox) + 'px';
+      co.style.top = (r.bottom + 10 + oy) + 'px';
+    } else if (side === 'right') {
+      co.style.left = (r.right + 12 + ox) + 'px';
+      co.style.top = (r.top + oy) + 'px';
+    }
+  }
+  co.classList.add('vis');
+}
+
+function hideCallout(id) {
+  $(id).classList.remove('vis');
+}
+
+function hideAllCallouts() {
+  ['co-burden', 'co-table', 'co-heatmap', 'co-compare', 'co-alerts'].forEach(hideCallout);
+}
+
+function prog(percent) {
+  $('progress').style.width = percent + '%';
+}
+
+const VIEWS = ['view-search', 'view-heatmap', 'view-compare', 'view-alerts'];
+const SB_MAP = {
+  'view-search': 'sb-search',
+  'view-heatmap': 'sb-heatmap',
+  'view-compare': 'sb-compare',
+  'view-alerts': 'sb-alerts',
+};
+
+function switchView(name) {
+  VIEWS.forEach(view => $(view).classList.remove('vis'));
+  document.querySelectorAll('.sb-item').forEach(el => el.classList.remove('on'));
+  $(name).classList.add('vis');
+  const sb = SB_MAP[name];
+  if (sb) $(sb).classList.add('on');
+}
+
+const timers = [];
+function at(time, fn) {
+  timers.push(setTimeout(fn, time));
+}
+
+function clearAll() {
+  timers.forEach(clearTimeout);
+  timers.length = 0;
+}
+
+function resetDemo() {
+  $('intro').className = '';
+  $('laptop').className = '';
+  VIEWS.forEach(view => $(view).classList.remove('vis'));
+  $('view-search').classList.add('vis');
+  document.querySelectorAll('.sb-item').forEach(el => el.classList.remove('on'));
+  $('sb-search').classList.add('on');
+  $('burdenBadge').className = 'burden-badge';
+  $('searchInput').className = 'search-input';
+  ['row-0', 'row-1', 'row-2'].forEach(id => $(id) && $(id).classList.remove('hl'));
+  document.querySelectorAll('.hm-cell').forEach(cell => cell.classList.remove('pop', 'hl'));
+  ['cmp-0', 'cmp-1', 'cmp-2'].forEach(id => $(id) && $(id).classList.remove('pop', 'hl'));
+  ['al-0', 'al-1', 'al-2'].forEach(id => {
+    if ($(id)) {
+      $(id).classList.remove('pop', 'hl');
+      $(id).style.boxShadow = '';
+    }
+  });
+  $('trustBar').className = 'trust-bar';
+  $('alertBadge').className = 'sb-badge';
+  hideAllCallouts();
+  CAP.className = '';
+  clearTimeout(capTimer);
+  $('camera').style.transform = 'scale(1)';
+  $('progress').style.width = '0%';
+  $('replay').classList.remove('vis');
+  setCursorPos(window.innerWidth * 0.5, window.innerHeight * 0.38, true);
+  CUR.className = '';
+}
+
+function runDemo() {
+  clearAll();
+  resetDemo();
+
+  at(200, () => { prog(2); $('intro').classList.add('vis'); });
+  at(1700, () => { prog(6); $('laptop').classList.add('vis'); });
+  at(2000, () => { $('intro').classList.add('out'); });
+  at(2700, () => { prog(10); setCam('search'); });
+  at(3000, () => { setCaption('Search any drug across all commercial health plans'); });
+
+  at(3200, () => {
+    prog(14);
+    const sr = getRect(qs('.screen'));
+    if (sr) setCursorPos(sr.left + 480, sr.top + 50, true);
+    CUR.classList.add('vis', 'on-app');
+  });
+  at(3900, () => { moveTo('searchInput'); });
+  at(4700, () => { prog(18); cursorClick(); $('searchInput').classList.add('focused'); });
+
+  at(5100, () => { moveTo('searchBtn'); });
+  at(5700, () => {
+    prog(22);
+    cursorClick(() => {
+      const button = $('searchBtn');
+      button.style.opacity = '.7';
+      setTimeout(() => { button.style.opacity = ''; }, 200);
+    });
+  });
+  at(5900, () => { prog(26); setCaption('Coverage across 3 health plans - instantly'); });
+
+  at(6500, () => { prog(30); setCam('results'); });
+  at(6800, () => { $('burdenBadge').classList.add('hl'); });
+  at(7100, () => {
+    prog(34);
+    moveTo('burdenBadge', -20, 0);
+    showCallout('co-burden', $('burdenBadge'), 'left', 0, -8);
+  });
+  at(8000, () => {
+    $('burdenBadge').classList.remove('hl');
+    hideCallout('co-burden');
+  });
+
+  at(8200, () => { prog(38); setCam('table'); setCaption('Every payer. Every restriction. Source-cited.'); });
+  at(8550, () => { $('row-0').classList.add('hl'); moveTo('row-0', 50, 0, true); });
+  at(8850, () => { $('row-1').classList.add('hl'); moveTo('row-1', 50, 0, true); });
+  at(9150, () => {
+    $('row-2').classList.add('hl');
+    moveTo('row-2', 50, 0, true);
+    showCallout('co-table', $('tableCard'), 'above', 0, 12);
+    prog(42);
+  });
+  at(9800, () => {
+    ['row-0', 'row-1', 'row-2'].forEach(id => $(id).classList.remove('hl'));
+    hideCallout('co-table');
+  });
+
+  const TRUST_T = 10000;
+  at(TRUST_T, () => {
+    prog(46);
+    setCam('trust');
+    hideAllCallouts();
+    $('trustBar').classList.add('hl');
+    setCaption('HIPAA-aligned - Encrypted - Source-cited on every answer');
+    moveTo('trustBar', 0, 0, true);
+  });
+
+  const HM_T = TRUST_T + 2800;
+  at(HM_T, () => {
+    prog(70);
+    $('trustBar').classList.remove('hl');
+    setCaption('Coverage heatmap - spot gaps across all drugs at once');
+    moveTo('sb-heatmap');
+  });
+  at(HM_T + 650, () => {
+    cursorClick(() => {
+      setTimeout(() => {
+        switchView('view-heatmap');
+        setCam('heatmap');
+      }, 180);
+    });
+  });
+  at(HM_T + 1100, () => {
+    document.querySelectorAll('.hm-cell').forEach((cell, index) => {
+      setTimeout(() => cell.classList.add('pop'), index * 70);
+    });
+  });
+  at(HM_T + 2000, () => { prog(72); moveTo('hm-2-1', 0, 0, true); });
+  at(HM_T + 2400, () => { $('hm-2-1').classList.add('hl'); });
+  at(HM_T + 2700, () => { showCallout('co-heatmap', $('hm-2-1'), 'above', -60, 0); });
+  at(HM_T + 3300, () => {
+    $('hm-2-1').classList.remove('hl');
+    hideCallout('co-heatmap');
+    moveTo('hm-0-0', 0, 0, true);
+  });
+
+  const CMP_T = HM_T + 4400;
+  at(CMP_T, () => {
+    prog(78);
+    setCaption('Payer comparison - PA criteria side-by-side');
+    moveTo('sb-compare');
+  });
+  at(CMP_T + 650, () => {
+    cursorClick(() => {
+      setTimeout(() => {
+        switchView('view-compare');
+        setCam('compare');
+      }, 180);
+    });
+  });
+  at(CMP_T + 1050, () => {
+    $('cmp-0').classList.add('pop');
+    setTimeout(() => $('cmp-1').classList.add('pop'), 160);
+    setTimeout(() => $('cmp-2').classList.add('pop'), 320);
+  });
+  at(CMP_T + 1750, () => { prog(82); moveTo('cmp-1'); $('cmp-1').classList.add('hl'); });
+  at(CMP_T + 2200, () => { showCallout('co-compare', $('cmp-1'), 'above', -20, 6); });
+  at(CMP_T + 3000, () => {
+    $('cmp-1').classList.remove('hl');
+    moveTo('cmp-0');
+    $('cmp-0').classList.add('hl');
+  });
+  at(CMP_T + 3500, () => {
+    $('cmp-0').classList.remove('hl');
+    hideCallout('co-compare');
+  });
+
+  const ALT_T = CMP_T + 4400;
+  at(ALT_T, () => {
+    prog(88);
+    setCaption('Policy change alerts - automatically detected');
+    moveTo('sb-alerts');
+  });
+  at(ALT_T + 650, () => {
+    cursorClick(() => {
+      setTimeout(() => {
+        switchView('view-alerts');
+        setCam('alerts');
+      }, 180);
+    });
+  });
+  at(ALT_T + 1050, () => {
+    $('al-0').classList.add('pop');
+    setTimeout(() => $('al-1').classList.add('pop'), 160);
+    setTimeout(() => $('al-2').classList.add('pop'), 320);
+  });
+  at(ALT_T + 1700, () => { prog(92); moveTo('al-0', 80, 0, true); $('al-0').classList.add('hl'); });
+  at(ALT_T + 2200, () => {
+    $('al-0').classList.remove('hl');
+    moveTo('al-1', 80, 0, true);
+    $('al-1').classList.add('hl');
+  });
+  at(ALT_T + 2700, () => {
+    $('al-1').classList.remove('hl');
+    moveTo('al-2', 80, 0, true);
+    $('al-2').classList.add('hl');
+    showCallout('co-alerts', $('al-0'), 'above', 20, 0);
+    prog(96);
+  });
+  at(ALT_T + 3400, () => {
+    $('al-2').classList.remove('hl');
+    hideCallout('co-alerts');
+  });
+
+  const FINAL_T = ALT_T + 4200;
+  at(FINAL_T, () => {
+    prog(99);
+    setCam('normal');
+    setCaption('Coverage360 - Anton Rx - Innovation Hacks 2.0');
+    moveTo('sb-search');
+  });
+  at(FINAL_T + 600, () => {
+    cursorClick(() => {
+      setTimeout(() => {
+        switchView('view-search');
+      }, 180);
+    });
+  });
+  at(FINAL_T + 1400, () => {
+    CUR.classList.remove('on-app');
+    const sr = getRect(qs('.screen'));
+    if (sr) {
+      CUR.style.left = (sr.left + 480) + 'px';
+      CUR.style.top = (sr.top + 340) + 'px';
+    }
+  });
+  at(FINAL_T + 2200, () => {
+    prog(100);
+    CUR.classList.remove('vis');
+    $('replay').classList.add('vis');
+  });
+}
+
+window.addEventListener('load', () => setTimeout(runDemo, 250));
+$('replay').addEventListener('click', () => {
+  $('replay').classList.remove('vis');
+  setTimeout(runDemo, 300);
+});
+</script>
+</body>
+</html>

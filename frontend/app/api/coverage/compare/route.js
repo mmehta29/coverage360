@@ -49,11 +49,14 @@ function adaptComparison(data) {
     const payerName = payerData.payer_name
     payers.push(payerName)
 
-    // Map indications
+    // Map indications — keep all fields CompareView and RecommendPage need
     const indications = (payerData.indications || []).map(ind => ({
       indication_name: ind.indication_name,
       coverage_status: ind.coverage_status,
-      icd10_codes: ind.icd10_codes || []
+      requires_prior_auth: !!ind.requires_prior_auth,
+      site_of_care_restriction: ind.site_of_care_restriction || null,
+      limitations: Array.isArray(ind.limitations) ? ind.limitations : [],
+      icd10_codes: ind.icd10_codes || [],
     }))
 
     // Parse step_therapy from first indication
@@ -70,10 +73,14 @@ function adaptComparison(data) {
     }
 
     // Determine overall coverage status (worst case across indications)
-    const statusRank = { not_covered: 3, unproven: 2, non_preferred: 1, preferred: 0, covered: 0 }
+    const statusRank = {
+      covered: 0, preferred: 0, preferred_specialty: 0,
+      non_preferred: 1, non_specialty: 1,
+      unproven: 2, not_covered: 3,
+    }
     const worstStatus = (payerData.indications || []).reduce((worst, ind) => {
-      const rank = statusRank[ind.coverage_status] ?? 2
-      const worstRank = statusRank[worst] ?? 2
+      const rank = statusRank[ind.coverage_status] ?? 1
+      const worstRank = statusRank[worst] ?? 1
       return rank > worstRank ? ind.coverage_status : worst
     }, 'covered')
 

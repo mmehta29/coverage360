@@ -172,7 +172,8 @@ def search_drug_coverage(drug_name: str):
             client.table("coverage_rules")
             .select(
                 "indication_name, coverage_status, requires_prior_auth, prior_auth_type, "
-                "step_therapy, hcpcs_code, drug_brand_name, drug_generic_name, "
+                "step_therapy, pa_criteria, general_requirements, site_of_care_restriction, "
+                "hcpcs_code, drug_brand_name, drug_generic_name, "
                 "policies(id, policy_title, effective_date, payers(name, short_name))"
             )
             .or_(f"drug_generic_name.ilike.%{term}%,drug_brand_name.ilike.%{term}%")

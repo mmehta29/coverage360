@@ -50,8 +50,8 @@ class PACriteria(BaseModel):
     specialist_required: Optional[str] = None
     approval_duration_days: Optional[int] = None
     approval_duration_months: Optional[int] = None
-    reauth_required: bool = False
-    reauth_criteria_same_as_initial: bool = True
+    reauth_required: Optional[bool] = False
+    reauth_criteria_same_as_initial: Optional[bool] = True
 
 
 class DosingInfo(BaseModel):

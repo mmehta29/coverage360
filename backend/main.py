@@ -14,6 +14,7 @@ Endpoints:
   POST /chat                    — natural language Q&A
   GET  /health                  — health check
 """
+import json
 import os
 import tempfile
 from datetime import datetime, timedelta, timezone
@@ -308,26 +309,56 @@ def get_category_positions(molecule: str):
 
 @app.get("/diff/{policy_id}")
 def get_policy_diff(policy_id: str):
-    """Q3: Version history and diffs for a single policy."""
+    """Q3: Frontend-friendly latest vs previous policy diff."""
+    client = get_client()
     versions = (
-        get_client().table("policy_versions")
-        .select("*")
+        client.table("policy_versions")
+        .select("policy_id, version_number, raw_text_hash, snapshot_json, diff_summary, is_meaningful_change, snapshotted_at")
         .eq("policy_id", policy_id)
         .order("version_number", desc=True)
+        .limit(2)
         .execute()
-    )
-    return {"policy_id": policy_id, "versions": versions.data}
+    ).data
+
+    if not versions:
+        raise HTTPException(status_code=404, detail="Policy diff not found")
+
+    policy = (
+        client.table("policies")
+        .select("id, policy_title, policy_number, effective_date, payers(name, short_name)")
+        .eq("id", policy_id)
+        .single()
+        .execute()
+    ).data or {}
+
+    latest = versions[0]
+    previous = versions[1] if len(versions) > 1 else None
+    diff_payload = _parse_json_field(latest.get("diff_summary"), {}) or {}
+
+    return {
+        "policy_id": policy_id,
+        "policy_title": policy.get("policy_title"),
+        "policy_number": policy.get("policy_number"),
+        "payer_name": ((policy.get("payers") or {}).get("name")),
+        "payer_short_name": ((policy.get("payers") or {}).get("short_name")),
+        "latest_version": _serialize_policy_version(latest),
+        "previous_version": _serialize_policy_version(previous) if previous else None,
+        "is_meaningful_change": bool(latest.get("is_meaningful_change")),
+        "summary": diff_payload.get("diff_summary") or "No summarized policy changes available yet.",
+        "change_types": _normalize_change_types(diff_payload.get("change_types")),
+        "changes": _build_change_items(diff_payload),
+    }
 
 
 @app.get("/changes/recent")
-def recent_changes(days: int = 90):
+def recent_changes(days: int = 1):
     """All meaningful policy changes in the last N days."""
     cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
     result = (
         get_client().table("policy_versions")
         .select(
             "version_number, diff_summary, is_meaningful_change, snapshotted_at, "
-            "policies(policy_title, payers(name, short_name))"
+            "policies(id, policy_title, payers(name, short_name))"
         )
         .eq("is_meaningful_change", True)
         .gte("snapshotted_at", cutoff)
@@ -351,3 +382,72 @@ async def chat(body: dict):
     if not CLAUDE_API_KEY:
         raise HTTPException(500, "ANTHROPIC_API_KEY not configured")
     return await answer_question(question, CLAUDE_API_KEY)
+
+
+def _parse_json_field(value, fallback=None):
+    if value in (None, ""):
+        return fallback
+    if isinstance(value, (dict, list)):
+        return value
+    try:
+        return json.loads(value)
+    except Exception:
+        return fallback
+
+
+def _serialize_policy_version(version: dict | None):
+    if not version:
+        return None
+    snapshot = _parse_json_field(version.get("snapshot_json"), {}) or {}
+    metadata = snapshot.get("policy_metadata", {})
+    return {
+        "version_number": version.get("version_number"),
+        "snapshotted_at": version.get("snapshotted_at"),
+        "effective_date": metadata.get("effective_date"),
+        "reviewed_date": metadata.get("reviewed_date"),
+        "revised_date": metadata.get("revised_date"),
+        "coverage_rule_count": len(snapshot.get("coverage_rules", [])),
+        "drug_count": len(snapshot.get("drugs", [])),
+    }
+
+
+def _normalize_change_types(change_types):
+    if isinstance(change_types, list):
+        return [str(change) for change in change_types]
+    return []
+
+
+def _build_change_items(diff_payload: dict):
+    change_types = _normalize_change_types(diff_payload.get("change_types"))
+    summary = diff_payload.get("diff_summary")
+    items = []
+    for change_type in change_types:
+        items.append({
+            "type": change_type,
+            "label": _label_change_type(change_type),
+        })
+    if summary and not items:
+        items.append({"type": "summary", "label": summary})
+    return items
+
+
+def _label_change_type(change_type: str) -> str:
+    labels = {
+        "step_therapy_added": "Step therapy added",
+        "step_therapy_removed": "Step therapy removed",
+        "step_therapy_changed": "Step therapy changed",
+        "indication_added": "Coverage expanded to a new indication",
+        "indication_removed": "An indication was removed",
+        "indications_added": "Coverage expanded to additional indications",
+        "indications_removed": "Coverage narrowed for one or more indications",
+        "pa_criteria_tightened": "Prior auth criteria tightened",
+        "pa_criteria_loosened": "Prior auth criteria loosened",
+        "pa_criteria_changed": "Prior auth criteria changed",
+        "coverage_status_changed": "Coverage status changed",
+        "new_drug_added": "A new drug was added",
+        "drug_removed": "A drug was removed",
+        "drugs_changed": "Drug coverage lineup changed",
+        "effective_date_updated": "Effective date updated",
+        "cosmetic_edit": "Cosmetic edit only",
+    }
+    return labels.get(change_type, change_type.replace("_", " ").capitalize())

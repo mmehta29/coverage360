@@ -30,7 +30,7 @@ export default function CoverageTable({ rows = [] }) {
         <span className="card-title">Coverage by indication</span>
         <button className="card-action" onClick={() => exportCsv(rows)}>Export CSV →</button>
       </div>
-      <div className="card-body" style={{padding:0}}>
+      <div className="card-body" style={{ padding: 0 }}>
         <table className="ctable">
           <thead>
             <tr>
@@ -160,9 +160,36 @@ export default function CoverageTable({ rows = [] }) {
   )
 }
 
+function EvidenceCard({ item }) {
+  return (
+    <div className="evidence-card">
+      <div className="evidence-card-head">
+        <span className="evidence-card-title">{item.policyTitle}</span>
+        <span className="evidence-card-date">{formatDate(item.effectiveDate)}</span>
+      </div>
+      <div className="evidence-card-meta">{item.indication}</div>
+      <div className="evidence-card-list">
+        <div><b>Status:</b> {labelStatus(item.coverageStatus)}</div>
+        <div><b>Prior auth:</b> {item.requiresPriorAuth ? 'Required' : 'Not required'}</div>
+        {item.stepTherapy && <div><b>Step therapy:</b> {item.stepTherapy}</div>}
+      </div>
+    </div>
+  )
+}
+
+function labelStatus(status) {
+  if (status === 'covered') return 'Covered'
+  if (status === 'restricted') return 'Restricted'
+  if (status === 'denied') return 'Denied'
+  return 'Unknown'
+}
+
+function formatDate(iso) {
+  if (!iso) return 'Unknown date'
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 function formatPaType(type) {
   if (!type) return 'Required'
-  const labels = {
+  const labels = { $
     standard: 'Standard',
     specialty: 'Specialty',
     medical_necessity: 'Medical',
@@ -178,6 +205,8 @@ function exportCsv(rows) {
   const blob = new Blob([header + body], { type: 'text/csv' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
-  a.href = url; a.download = 'coverage.csv'; a.click()
+  a.href = url
+  a.download = 'coverage.csv'
+  a.click()
   URL.revokeObjectURL(url)
 }

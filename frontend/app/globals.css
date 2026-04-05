@@ -173,6 +173,16 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:13.
 .chat-panel-body{flex:1;display:flex;flex-direction:column;padding:16px;overflow:hidden;}
 .chat-panel-well{flex:1;display:flex;flex-direction:column;gap:9px;overflow-y:auto;min-height:0;margin-bottom:10px;}
 .chat-panel-empty{font-size:12px;color:var(--ink3);line-height:1.6;padding:8px 0;}
+.chat-evidence-grid{display:grid;grid-template-columns:1fr;gap:8px;margin-top:10px;}
+.evidence-toggle,.diff-toggle{display:inline-flex;margin-top:8px;padding:0;background:none;border:none;}
+.evidence-row td{padding:0 12px 14px;}
+.evidence-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;padding-top:6px;}
+.evidence-card{background:var(--white);border:1px solid var(--line);border-radius:10px;padding:10px 12px;}
+.evidence-card-head{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;}
+.evidence-card-title{font-size:11.5px;font-weight:500;color:var(--navy);}
+.evidence-card-date{font-size:10.5px;color:var(--ink3);font-family:var(--mono);white-space:nowrap;}
+.evidence-card-meta{font-size:11px;color:var(--ink3);margin-top:4px;}
+.evidence-card-list{display:flex;flex-direction:column;gap:4px;font-size:11.5px;color:var(--ink2);margin-top:8px;line-height:1.5;}
 
 /* ─── Heatmap ─────────────────────────────────────────────────────────────── */
 .hm-meta{font-size:11px;color:var(--ink3);font-family:var(--mono);}
@@ -211,6 +221,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:13.
 
 @media (max-width: 640px){
   .hm-note{font-size:11px;}
+  .policy-diff-versions{grid-template-columns:1fr;}
 }
 
 /* ─── Alerts ──────────────────────────────────────────────────────────────── */
@@ -236,6 +247,14 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:13.
 .alert-item.alert-positive .alert-type-badge{background:var(--covered-bg);color:var(--covered);border:1px solid var(--covered-br);}
 .alert-item.alert-warning .alert-type-badge{background:var(--restricted-bg);color:var(--restricted);border:1px solid var(--restricted-br);}
 .alert-item.alert-negative .alert-type-badge{background:var(--denied-bg);color:var(--denied);border:1px solid var(--denied-br);}
+.policy-diff-panel{margin-top:12px;padding:12px;border-radius:10px;background:var(--bg);border:1px solid var(--line);}
+.policy-diff-summary{font-size:12.5px;color:var(--ink);line-height:1.6;}
+.policy-diff-changes{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+.policy-diff-chip{font-size:10.5px;padding:4px 8px;border-radius:999px;background:var(--white);border:1px solid var(--line);color:var(--ink2);}
+.policy-diff-versions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px;}
+.policy-diff-version{padding:10px;border-radius:8px;background:var(--white);border:1px solid var(--line);font-size:11.5px;color:var(--ink2);display:flex;flex-direction:column;gap:3px;}
+.policy-diff-version-label{font-size:10px;font-weight:500;letter-spacing:.7px;text-transform:uppercase;color:var(--ink3);}
+.policy-diff-empty{font-size:12px;color:var(--ink3);}
 
 /* ─── Compare ─────────────────────────────────────────────────────────────── */
 .compare-drug-header{margin-bottom:20px;}

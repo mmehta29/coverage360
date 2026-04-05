@@ -1,5 +1,3 @@
-import { mockChatAnswer } from '@/lib/mockData'
-
 const BACKEND_URL = process.env.BACKEND_URL
 
 export async function POST(request) {
@@ -8,9 +6,8 @@ export async function POST(request) {
     return Response.json({ error: 'question is required' }, { status: 400 })
   }
 
-  // Fallback to mock when no backend is configured
   if (!BACKEND_URL) {
-    return Response.json(mockChatAnswer(question, drug))
+    return Response.json({ error: 'Backend not configured' }, { status: 503 })
   }
 
   let res
@@ -37,5 +34,9 @@ export async function POST(request) {
     ? data.sources.join(' · ')
     : (data.sources ?? '')
 
-  return Response.json({ answer: data.answer, sources })
+  return Response.json({
+    answer: data.answer,
+    sources,
+    evidence: Array.isArray(data.evidence) ? data.evidence : [],
+  })
 }

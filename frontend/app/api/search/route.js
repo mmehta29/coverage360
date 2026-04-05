@@ -7,11 +7,8 @@ export async function GET(request) {
   const query = (searchParams.get('q') ?? '').trim()
   if (!query) return Response.json({ error: 'Query required' }, { status: 400 })
 
-  // Fallback to mock when no backend is configured (local dev without backend running)
   if (!BACKEND_URL) {
-    const drug = lookupDrug(query)
-    if (!drug) return Response.json({ error: 'Not found' }, { status: 404 })
-    return Response.json(drug)
+    return Response.json({ error: 'Backend not configured' }, { status: 503 })
   }
 
   let res
@@ -175,4 +172,12 @@ function parseHcpcsCodes(hcpcsJson) {
 function capitalize(str) {
   if (!str) return ''
   return str.charAt(0).toUpperCase() + str.slice(1)
+}
+
+function summarizeStepTherapy(value) {
+  const steps = parseJsonField(value)
+  if (!Array.isArray(steps) || steps.length === 0) return null
+  const agents = steps.flatMap(step => step.required_agents ?? []).filter(Boolean)
+  if (!agents.length) return 'Required'
+  return `Try ${agents.slice(0, 3).join(', ')} first`
 }

@@ -229,5 +229,10 @@ def extract_policy(file_path: str, api_key: str) -> tuple[ExtractedPolicy, str, 
     if not meta.get("policy_title"):
         meta["policy_title"] = "Untitled Policy"
 
+    # Ensure every coverage rule has a drug_generic_name — fall back to brand name
+    for rule in claude_data.get("coverage_rules", []):
+        if not rule.get("drug_generic_name"):
+            rule["drug_generic_name"] = rule.get("drug_brand_name") or "unknown"
+
     policy = ExtractedPolicy(**claude_data)
     return policy, text_for_claude, raw_text_hash

@@ -10,6 +10,7 @@ load_dotenv()
 from extraction.gemini_extractor import extract_policy
 from normalization.normalizer import normalize_and_store
 from database.supabase_client import get_client
+from ingestion.pdf_parser import extract_text_from_file
 
 POLICIES = [
     "/Users/manyamehta/Downloads/Medical Drug Coverage Policy Examples/UHC Botulinum Toxins A and B – Commercial Medical Benefit Drug Policy.pdf",
@@ -17,6 +18,7 @@ POLICIES = [
     "/Users/manyamehta/Downloads/Medical Drug Coverage Policy Examples/Florida Blue MCG Bevecizumab policy.pdf",
     "/Users/manyamehta/Downloads/Medical Drug Coverage Policy Examples/Cigna Rituximab Intravenous Products for Non-Oncology Indications.pdf",
     "/Users/manyamehta/Downloads/Medical Drug Coverage Policy Examples/Priority Health 2026 MDL - Priority Health Commercial (Employer Group) and MyPriority.pdf",
+    "/Users/manyamehta/Downloads/Medical Drug Coverage Policy Examples/EmblemHealth_MPS_Denosumab_11_25_hcpcs.pdf",
 ]
 
 def main():
@@ -32,16 +34,16 @@ def main():
         filename = path.split("/")[-1]
         print(f"\n[{i}/{total}] {filename}")
 
-        print(f"  Extracting via Claude...")
-
         try:
-            policy, _text, text_hash = extract_policy(path, api_key)
-
-            # Check if already ingested
+            # Check duplicate BEFORE calling Claude (free hash check)
+            _, text_hash = extract_text_from_file(path)
             dup = client.table("policies").select("id").eq("raw_text_hash", text_hash).execute()
             if dup.data:
                 print(f"  SKIPPED — already in database (policy_id: {dup.data[0]['id']})")
                 continue
+
+            print(f"  Extracting via Claude...")
+            policy, _text, text_hash = extract_policy(path, api_key)
 
             result = normalize_and_store(policy, text_hash)
             print(f"  ✓ Payer:     {policy.policy_metadata.payer_name}")

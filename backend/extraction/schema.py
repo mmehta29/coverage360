@@ -69,7 +69,7 @@ class CoveredAlternative(BaseModel):
 
 class CoverageRuleSchema(BaseModel):
     drug_brand_name: Optional[str] = None
-    drug_generic_name: str
+    drug_generic_name: Optional[str] = None
     hcpcs_code: Optional[str] = None
 
     # Indication-level fields

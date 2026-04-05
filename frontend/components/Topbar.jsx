@@ -1,20 +1,20 @@
-import AlertsBell from './AlertsBell'
-
-export default function Topbar({ payers = [] }) {
+export default function Topbar({ payers = [], user = null, organizationName = '', onLogout }) {
   return (
     <div className="topbar">
       <div className="logo">
         <span className="logo-main">Coverage</span>
         <span className="logo-360">360</span>
-        <span className="logo-tag">by Anton Rx · Analyst Portal</span>
+        <span className="logo-tag">by Anton Rx - Analyst Portal</span>
       </div>
       <div className="topbar-right">
+        {organizationName && <span className="payer-pill">{organizationName}</span>}
         {payers.map(p => (
           <span key={p} className="payer-pill">{p}</span>
         ))}
-        <AlertsBell />
+        {user?.email && <span className="payer-pill">{user.email}</span>}
         <button className="btn-ghost">Upload PDF</button>
         <button className="btn-solid">+ Add payer</button>
+        {user && <button className="btn-ghost" onClick={onLogout}>Log out</button>}
       </div>
     </div>
   )

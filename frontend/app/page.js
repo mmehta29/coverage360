@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useUser } from '@auth0/nextjs-auth0/client'
 import Topbar from '@/components/Topbar'
 import Sidebar from '@/components/Sidebar'
 import SearchHero from '@/components/SearchHero'
@@ -7,11 +8,12 @@ import CoverageTable from '@/components/CoverageTable'
 import CoverageHeatmap from '@/components/CoverageHeatmap'
 import AlertsPanel from '@/components/AlertsPanel'
 import CompareView from '@/components/CompareView'
+import OrganizationProfile from '@/components/OrganizationProfile'
 import TrustBar from '@/components/TrustBar'
-import { PAYERS as FALLBACK_PAYERS, INDEX_STATS } from '@/lib/mockData'
 
 const ALERTS_CACHE_KEY = 'coverage360-alerts-cache-v1'
 const ALERTS_CACHE_TTL_MS = 24 * 60 * 60 * 1000
+const ORG_PROFILE_STORAGE_PREFIX = 'coverage360-organization-profile-v1:'
 
 function PersistentChat({ drugName }) {
   const [messages, setMessages] = useState([])
@@ -41,7 +43,12 @@ function PersistentChat({ drugName }) {
         body: JSON.stringify({ question: q, drug: drugName }),
       })
       const data = await res.json()
-      setMessages(prev => [...prev, { role: 'assistant', text: data.answer, sources: data.sources }])
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        text: data.answer,
+        sources: data.sources,
+        evidence: Array.isArray(data.evidence) ? data.evidence : [],
+      }])
     } catch {
       setMessages(prev => [...prev, { role: 'assistant', text: 'Unable to reach the server.' }])
     } finally {
@@ -144,6 +151,24 @@ function PersistentChat({ drugName }) {
             <div key={index} className={`chat-msg ${message.role === 'user' ? 'chat-u' : 'chat-a'}`}>
               {message.text}
               {message.sources && <div className="chat-src">{message.sources}</div>}
+              {message.evidence?.length > 0 && (
+                <div className="chat-evidence-grid">
+                  {message.evidence.slice(0, 4).map((item, evidenceIndex) => (
+                    <div key={`${index}-${evidenceIndex}`} className="evidence-card">
+                      <div className="evidence-card-head">
+                        <span className="evidence-card-title">{item.policy_title || 'Policy'}</span>
+                        <span className="evidence-card-date">{formatEvidenceDate(item.effective_date)}</span>
+                      </div>
+                      <div className="evidence-card-meta">{item.payer_name || 'Unknown payer'} · {item.indication_name || 'All indications'}</div>
+                      <div className="evidence-card-list">
+                        <div><b>Status:</b> {labelEvidenceStatus(item.coverage_status)}</div>
+                        <div><b>Prior auth:</b> {item.requires_prior_auth ? 'Required' : 'Not required'}</div>
+                        {formatEvidenceStep(item.step_therapy) && <div><b>Step therapy:</b> {formatEvidenceStep(item.step_therapy)}</div>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
           {loading && (
@@ -179,12 +204,13 @@ function PersistentChat({ drugName }) {
 }
 
 export default function Home() {
+  const { user, isLoading } = useUser()
   const [nav, setNav] = useState('search')
   const [query, setQuery] = useState('Rituximab')
   const [result, setResult] = useState(null)
   const [notFound, setNotFound] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [payers, setPayers] = useState(FALLBACK_PAYERS)
+  const [payers, setPayers] = useState([])
   const [heatmapData, setHeatmapData] = useState({ drugs: [], payers: [], matrix: {} })
   const [heatmapLoading, setHeatmapLoading] = useState(false)
   const [heatmapError, setHeatmapError] = useState('')
@@ -194,18 +220,34 @@ export default function Home() {
   const [alertsData, setAlertsData] = useState([])
   const [alertsLoading, setAlertsLoading] = useState(false)
   const [alertsError, setAlertsError] = useState('')
+  const [organizationProfile, setOrganizationProfile] = useState(null)
 
   useEffect(() => {
+    if (!user?.sub || typeof window === 'undefined') {
+      setOrganizationProfile(null)
+      return
+    }
+
+    try {
+      const raw = window.localStorage.getItem(`${ORG_PROFILE_STORAGE_PREFIX}${user.sub}`)
+      setOrganizationProfile(raw ? JSON.parse(raw) : null)
+    } catch {
+      setOrganizationProfile(null)
+    }
+  }, [user?.sub])
+
+  useEffect(() => {
+    if (!user) return
     fetch('/api/payers')
       .then(response => response.ok ? response.json() : null)
       .then(data => {
         if (data?.length) setPayers(data.map(payer => payer.short_name || payer.name))
       })
       .catch(() => {})
-  }, [])
+  }, [user])
 
   useEffect(() => {
-    if (nav !== 'heatmap' || heatmapData.drugs.length > 0 || heatmapLoading) return
+    if (!user || nav !== 'heatmap' || heatmapData.drugs.length > 0 || heatmapLoading) return
 
     setHeatmapLoading(true)
     setHeatmapError('')
@@ -217,10 +259,10 @@ export default function Home() {
       })
       .catch(error => setHeatmapError(error.message || 'Unable to load heatmap'))
       .finally(() => setHeatmapLoading(false))
-  }, [nav, heatmapData.drugs.length, heatmapLoading])
+  }, [user, nav, heatmapData.drugs.length, heatmapLoading])
 
   useEffect(() => {
-    if (nav !== 'alerts' || alertsLoading) return
+    if (!user || nav !== 'alerts' || alertsLoading) return
 
     const cached = readAlertsCache()
     const cacheIsFresh = cached && Date.now() - cached.savedAt < ALERTS_CACHE_TTL_MS
@@ -242,17 +284,17 @@ export default function Home() {
       })
       .catch(error => setAlertsError(error.message || 'Unable to load alerts'))
       .finally(() => setAlertsLoading(false))
-  }, [nav, alertsLoading])
+  }, [user, nav, alertsLoading])
 
   useEffect(() => {
     const cached = readAlertsCache()
-    if (cached?.alerts?.length) {
+    if (user && cached?.alerts?.length) {
       setAlertsData(cached.alerts)
     }
-  }, [])
+  }, [user])
 
   useEffect(() => {
-    if (nav !== 'compare' || !result?.name) return
+    if (!user || nav !== 'compare' || !result?.name) return
 
     setCompareLoading(true)
     setCompareError('')
@@ -264,7 +306,7 @@ export default function Home() {
       })
       .catch(error => setCompareError(error.message || 'Unable to load comparison'))
       .finally(() => setCompareLoading(false))
-  }, [nav, result?.name])
+  }, [user, nav, result?.name])
 
   async function handleSearch(nextQuery) {
     const trimmed = nextQuery.trim()
@@ -289,9 +331,38 @@ export default function Home() {
   const burdenStyle = result ? getBurdenStyle(result.burdenScore) : {}
   const alertCount = alertsData.filter(alert => alert.type === 'negative').length
 
+  if (isLoading) {
+    return (
+      <div className="auth-shell">
+        <div className="auth-card">
+          <div className="auth-title">Loading Coverage360</div>
+          <div className="auth-sub">Checking your session...</div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return (
+      <div className="auth-shell">
+        <div className="auth-card">
+          <div className="auth-eyebrow">Coverage360</div>
+          <div className="auth-title">Log in to continue</div>
+          <div className="auth-sub">Use Auth0 Universal Login to access the coverage recommendation workspace.</div>
+          <a className="btn-solid auth-link" href="/auth/login">Log in with Auth0</a>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div>
-      <Topbar payers={payers} />
+      <Topbar
+        payers={payers}
+        user={user}
+        organizationName={organizationProfile?.organizationName || ''}
+        onLogout={() => { window.location.href = '/auth/logout' }}
+      />
 
       <div className="shell">
         <Sidebar active={nav} onNav={setNav} alertCount={alertCount} />
@@ -303,7 +374,7 @@ export default function Home() {
                 query={query}
                 onQueryChange={setQuery}
                 onSearch={handleSearch}
-                indexStats={INDEX_STATS}
+                indexStats={null}
               />
               <div className="content">
                 {loading && <div className="search-status">Searching...</div>}
@@ -357,6 +428,10 @@ export default function Home() {
                 error={heatmapError}
               />
             </div>
+          )}
+
+          {nav === 'organization' && (
+            <OrganizationProfile user={user} onProfileChange={setOrganizationProfile} />
           )}
 
           {nav === 'compare' && (
@@ -424,4 +499,23 @@ function writeAlertsCache(alerts) {
       savedAt: Date.now(),
     }))
   } catch {}
+}
+
+function labelEvidenceStatus(status) {
+  if (['covered', 'preferred', 'preferred_specialty'].includes(status)) return 'Covered'
+  if (['non_preferred', 'non_specialty'].includes(status)) return 'Restricted'
+  if (status === 'not_covered' || status === 'unproven') return 'Denied'
+  return 'Unknown'
+}
+
+function formatEvidenceDate(iso) {
+  if (!iso) return 'Unknown date'
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+function formatEvidenceStep(steps) {
+  if (!Array.isArray(steps) || steps.length === 0) return null
+  const agents = steps.flatMap(step => step.required_agents ?? []).filter(Boolean)
+  if (!agents.length) return 'Required'
+  return `Try ${agents.slice(0, 2).join(', ')} first`
 }

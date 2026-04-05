@@ -1,8 +1,6 @@
 'use client'
 
-const RECENT = ['Adalimumab', 'Bevacizumab', 'Pembrolizumab']
-
-export default function SearchHero({ query, onQueryChange, onSearch, indexStats }) {
+export default function SearchHero({ query, onQueryChange, onSearch, indexStats, recentSearches = [] }) {
   return (
     <div className="search-hero">
       <div className="search-eyebrow">Medical benefit drug coverage</div>
@@ -26,9 +24,9 @@ export default function SearchHero({ query, onQueryChange, onSearch, indexStats 
         </button>
       </div>
       <div className="recent-row">
-        <span className="recent-lbl">Recent:</span>
-        {RECENT.map(r => (
-          <span key={r} className="recent-tag" onClick={() => onSearch(r)}>{r}</span>
+        {recentSearches.length > 0 && <span className="recent-lbl">Recent:</span>}
+        {recentSearches.map(r => (
+          <button key={r} className="recent-tag" onClick={() => onSearch(r)}>{r}</button>
         ))}
         {indexStats && (
           <span style={{marginLeft:'auto',fontSize:'11px',color:'var(--ink3)',fontWeight:300}}>

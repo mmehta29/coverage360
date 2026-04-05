@@ -1,10 +1,10 @@
-export default function Topbar({ payers = [] }) {
+export default function Topbar({ payers = [], subtitle = 'Analyst Portal' }) {
   return (
     <div className="topbar">
       <div className="logo">
         <span className="logo-main">Coverage</span>
         <span className="logo-360">360</span>
-        <span className="logo-tag">by Anton Rx · Analyst Portal</span>
+        <span className="logo-tag">{subtitle}</span>
       </div>
       <div className="topbar-right">
         {payers.map(p => (

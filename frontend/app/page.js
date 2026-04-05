@@ -1,28 +1,18 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Topbar from '@/components/Topbar'
 import Sidebar from '@/components/Sidebar'
 import SearchHero from '@/components/SearchHero'
 import CoverageTable from '@/components/CoverageTable'
 import ChatWidget from '@/components/ChatWidget'
 import TrustBar from '@/components/TrustBar'
-import { PAYERS as FALLBACK_PAYERS, INDEX_STATS } from '@/lib/mockData'
+import { PAYERS, INDEX_STATS } from '@/lib/mockData'
 
 export default function Home() {
-  const [query, setQuery] = useState('Rituximab')
+  const [query, setQuery] = useState('')
   const [result, setResult] = useState(null)
   const [notFound, setNotFound] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [payers, setPayers] = useState(FALLBACK_PAYERS)
-
-  useEffect(() => {
-    fetch('/api/payers')
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (data?.length) setPayers(data.map(p => p.short_name || p.name))
-      })
-      .catch(() => {})
-  }, [])
 
   async function handleSearch(q) {
     const trimmed = q.trim()
@@ -39,15 +29,15 @@ export default function Home() {
     }
   }
 
-  // Burden badge colors mirror the HTML's .burden-badge inline overrides
+  // Burden badge colors
   const burdenStyle = result ? getBurdenStyle(result.burdenScore) : {}
 
   return (
     <div>
-      <Topbar payers={payers} />
+      <Topbar payers={PAYERS} />
 
       <div className="shell">
-        <Sidebar alertCount={3} />
+        <Sidebar alertCount={0} />
 
         <div className="main">
           <SearchHero
@@ -64,7 +54,7 @@ export default function Home() {
 
             {notFound && !loading && (
               <div className="search-status">
-                No results for <b>{query}</b>. Check the spelling or try a generic name.
+                No results for <b>{query}</b>. Try searching by brand name, generic name, or J-code.
               </div>
             )}
 

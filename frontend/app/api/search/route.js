@@ -1,5 +1,3 @@
-import { lookupDrug } from '@/lib/mockData'
-
 const BACKEND_URL = (process.env.BACKEND_URL || '').replace(/\/+$/, '')
 
 export async function GET(request) {

@@ -1,20 +1,19 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useUser } from '@auth0/nextjs-auth0/client'
 import WelcomePage from '@/components/WelcomePage'
 import Topbar from '@/components/Topbar'
 import Sidebar from '@/components/Sidebar'
 import SearchHero from '@/components/SearchHero'
 import CoverageTable from '@/components/CoverageTable'
-import CoverageHeatmap from '@/components/CoverageHeatmap'
+import ComparePanel from '@/components/ComparePanel'
 import AlertsPanel from '@/components/AlertsPanel'
-import CompareView from '@/components/CompareView'
 import OrganizationProfile from '@/components/OrganizationProfile'
 import TrustBar from '@/components/TrustBar'
 import ChatWidget from '@/components/ChatWidget'
-import { INDEX_STATS } from '@/lib/mockData'
 
 const ALERTS_CACHE_TTL_MS = 5 * 60 * 1000
+const ALERTS_CACHE_KEY = 'coverage360_alerts'
 
 function PersistentChat({ drugName }) {
   const [messages, setMessages] = useState([])
@@ -218,33 +217,11 @@ export default function Home() {
   const [result, setResult] = useState(null)
   const [notFound, setNotFound] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [payers, setPayers] = useState([])
-  const [heatmapData, setHeatmapData] = useState({ drugs: [], payers: [], matrix: {} })
-  const [heatmapLoading, setHeatmapLoading] = useState(false)
-  const [heatmapError, setHeatmapError] = useState('')
 
   const [alertsData, setAlertsData] = useState([])
   const [alertsLoading, setAlertsLoading] = useState(false)
   const [alertsError, setAlertsError] = useState('')
 
-  const [compareData, setCompareData] = useState(null)
-  const [compareLoading, setCompareLoading] = useState(false)
-  const [compareError, setCompareError] = useState('')
-
-  useEffect(() => {
-    if (!user || nav !== 'heatmap' || heatmapData.drugs.length > 0 || heatmapLoading) return
-
-    setHeatmapLoading(true)
-    setHeatmapError('')
-    fetch('/api/coverage/heatmap')
-      .then(async response => {
-        const data = await response.json()
-        if (!response.ok) throw new Error(data.error || 'Unable to load heatmap')
-        setHeatmapData(data)
-      })
-      .catch(error => setHeatmapError(error.message || 'Unable to load heatmap'))
-      .finally(() => setHeatmapLoading(false))
-  }, [user, nav, heatmapData.drugs.length, heatmapLoading])
 
   useEffect(() => {
     if (!user || nav !== 'alerts' || alertsLoading) return
@@ -278,20 +255,6 @@ export default function Home() {
     }
   }, [user])
 
-  useEffect(() => {
-    if (!user || nav !== 'compare' || !result?.name) return
-
-    setCompareLoading(true)
-    setCompareError('')
-    fetch(`/api/coverage/compare?drug=${encodeURIComponent(result.name)}`)
-      .then(async response => {
-        const data = await response.json()
-        if (!response.ok) throw new Error(data.error || 'Unable to load comparison')
-        setCompareData(data)
-      })
-      .catch(error => setCompareError(error.message || 'Unable to load comparison'))
-      .finally(() => setCompareLoading(false))
-  }, [user, nav, result?.name])
 
   async function handleSearch(nextQuery) {
     const trimmed = nextQuery.trim()
@@ -314,7 +277,12 @@ export default function Home() {
   }
 
   if (showWelcome) {
-    return <WelcomePage onGetStarted={() => setShowWelcome(false)} />
+    return <WelcomePage onGetStarted={(searchQuery) => {
+      setShowWelcome(false)
+      if (searchQuery) {
+        handleSearch(searchQuery)
+      }
+    }} />
   }
 
   if (isLoading) {
@@ -418,17 +386,6 @@ export default function Home() {
             </>
           )}
 
-          {nav === 'heatmap' && (
-            <div className="content">
-              <CoverageHeatmap
-                drugs={heatmapData.drugs}
-                payers={heatmapData.payers}
-                matrix={heatmapData.matrix}
-                loading={heatmapLoading}
-                error={heatmapError}
-              />
-            </div>
-          )}
 
           {nav === 'alerts' && (
             <div className="content">
@@ -442,13 +399,7 @@ export default function Home() {
 
           {nav === 'compare' && (
             <div className="content">
-              <CompareView
-                result={result}
-                comparisonData={compareData}
-                loading={compareLoading}
-                error={compareError}
-                onGoToSearch={() => setNav('search')}
-              />
+              <ComparePanel initialDrug={query} initialResult={result} />
             </div>
           )}
 
@@ -457,7 +408,7 @@ export default function Home() {
           )}
         </div>
 
-        <ChatWidget drugName={result?.name} />
+        {nav !== 'compare' && <ChatWidget drugName={result?.name} />}
       </div>
       <TrustBar />
     </div>
@@ -469,6 +420,7 @@ function getBurdenStyle(score) {
   if (score >= 50) return { borderColor: 'var(--restricted-br)', background: 'var(--restricted-bg)', color: 'var(--restricted)' }
   return { borderColor: 'var(--covered-br)', background: 'var(--covered-bg)', color: 'var(--covered)' }
 }
+
 
 function readAlertsCache() {
   if (typeof window === 'undefined') return null

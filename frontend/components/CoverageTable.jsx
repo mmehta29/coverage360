@@ -155,6 +155,7 @@ export default function CoverageTable({ rows = [] }) {
             ))}
           </tbody>
         </table>
+      </div>
     </div>
   )
 }
@@ -186,9 +187,11 @@ function labelStatus(status) {
 function formatDate(iso) {
   if (!iso) return 'Unknown date'
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
 function formatPaType(type) {
   if (!type) return 'Required'
-  const labels = { $
+  const labels = {
     standard: 'Standard',
     specialty: 'Specialty',
     medical_necessity: 'Medical',

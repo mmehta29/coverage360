@@ -149,12 +149,22 @@ function adaptDrugSearch(data) {
   // One row per payer
   const payerRows = Object.entries(byPayer).map(([payerName, rules]) => {
     const representative = rules[0]
+    const effectiveDate = representative.policies?.effective_date || null
     return {
       payer: payerName,
       status: worstStatus(rules),
       criteriaHeadline: buildHeadline(rules),
       criteria: buildCriteria(rules),
-      effective: formatDate(representative.policies?.effective_date),
+      effective: formatDate(effectiveDate),
+      evidence: rules.map(rule => ({
+        payer: payerName,
+        policyTitle: rule.policies?.policy_title || 'Policy',
+        effectiveDate,
+        indication: rule.indication_name || 'All indications',
+        coverageStatus: mapStatus(rule.coverage_status),
+        requiresPriorAuth: !!rule.requires_prior_auth,
+        stepTherapy: summarizeStepTherapy(rule.step_therapy),
+      })),
       // private fields used for burden computation only
       _hasPA: rules.some(r => r.requires_prior_auth),
       _hasStep: rules.some(r => {
@@ -190,4 +200,12 @@ function adaptDrugSearch(data) {
 function capitalize(str) {
   if (!str) return ''
   return str.charAt(0).toUpperCase() + str.slice(1)
+}
+
+function summarizeStepTherapy(value) {
+  const steps = parseJsonField(value)
+  if (!Array.isArray(steps) || steps.length === 0) return null
+  const agents = steps.flatMap(step => step.required_agents ?? []).filter(Boolean)
+  if (!agents.length) return 'Required'
+  return `Try ${agents.slice(0, 3).join(', ')} first`
 }

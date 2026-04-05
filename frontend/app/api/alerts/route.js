@@ -28,7 +28,9 @@ export async function GET(request) {
 function adaptAlert(change, index) {
   const payer = change.policies?.payers?.short_name || change.policies?.payers?.name || 'Unknown payer'
   const policyTitle = change.policies?.policy_title || 'Policy update'
-  const summary = change.diff_summary || 'Meaningful policy change detected.'
+  const summary = typeof change.diff_summary === 'string'
+    ? change.diff_summary
+    : (change.diff_summary?.diff_summary || 'Meaningful policy change detected.')
   const lower = summary.toLowerCase()
 
   let type = 'warning'
@@ -46,6 +48,7 @@ function adaptAlert(change, index) {
     summary,
     date: formatDate(change.snapshotted_at),
     policyRef: policyTitle,
+    policyId: change.policies?.id || null,
   }
 }
 

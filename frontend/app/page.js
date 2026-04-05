@@ -41,7 +41,12 @@ function PersistentChat({ drugName }) {
         body: JSON.stringify({ question: q, drug: drugName }),
       })
       const data = await res.json()
-      setMessages(prev => [...prev, { role: 'assistant', text: data.answer, sources: data.sources }])
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        text: data.answer,
+        sources: data.sources,
+        evidence: Array.isArray(data.evidence) ? data.evidence : [],
+      }])
     } catch {
       setMessages(prev => [...prev, { role: 'assistant', text: 'Unable to reach the server.' }])
     } finally {
@@ -144,6 +149,24 @@ function PersistentChat({ drugName }) {
             <div key={index} className={`chat-msg ${message.role === 'user' ? 'chat-u' : 'chat-a'}`}>
               {message.text}
               {message.sources && <div className="chat-src">{message.sources}</div>}
+              {message.evidence?.length > 0 && (
+                <div className="chat-evidence-grid">
+                  {message.evidence.slice(0, 4).map((item, evidenceIndex) => (
+                    <div key={`${index}-${evidenceIndex}`} className="evidence-card">
+                      <div className="evidence-card-head">
+                        <span className="evidence-card-title">{item.policy_title || 'Policy'}</span>
+                        <span className="evidence-card-date">{formatEvidenceDate(item.effective_date)}</span>
+                      </div>
+                      <div className="evidence-card-meta">{item.payer_name || 'Unknown payer'} · {item.indication_name || 'All indications'}</div>
+                      <div className="evidence-card-list">
+                        <div><b>Status:</b> {labelEvidenceStatus(item.coverage_status)}</div>
+                        <div><b>Prior auth:</b> {item.requires_prior_auth ? 'Required' : 'Not required'}</div>
+                        {formatEvidenceStep(item.step_therapy) && <div><b>Step therapy:</b> {formatEvidenceStep(item.step_therapy)}</div>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
           {loading && (
@@ -424,4 +447,23 @@ function writeAlertsCache(alerts) {
       savedAt: Date.now(),
     }))
   } catch {}
+}
+
+function labelEvidenceStatus(status) {
+  if (['covered', 'preferred', 'preferred_specialty'].includes(status)) return 'Covered'
+  if (['non_preferred', 'non_specialty'].includes(status)) return 'Restricted'
+  if (status === 'not_covered' || status === 'unproven') return 'Denied'
+  return 'Unknown'
+}
+
+function formatEvidenceDate(iso) {
+  if (!iso) return 'Unknown date'
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+function formatEvidenceStep(steps) {
+  if (!Array.isArray(steps) || steps.length === 0) return null
+  const agents = steps.flatMap(step => step.required_agents ?? []).filter(Boolean)
+  if (!agents.length) return 'Required'
+  return `Try ${agents.slice(0, 2).join(', ')} first`
 }

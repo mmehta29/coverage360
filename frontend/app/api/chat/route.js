@@ -37,5 +37,9 @@ export async function POST(request) {
     ? data.sources.join(' · ')
     : (data.sources ?? '')
 
-  return Response.json({ answer: data.answer, sources })
+  return Response.json({
+    answer: data.answer,
+    sources,
+    evidence: Array.isArray(data.evidence) ? data.evidence : [],
+  })
 }

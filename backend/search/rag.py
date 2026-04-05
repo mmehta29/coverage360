@@ -14,7 +14,6 @@ import json
 import anthropic
 
 from database.supabase_client import get_client
-from search.openfda import resolve_drug_name
 
 SYSTEM_PROMPT = """You are Coverage360, an AI assistant that helps market access analysts
 answer questions about medical benefit drug coverage policies across health plans.
@@ -29,6 +28,7 @@ Rules:
 - When listing PA criteria, present them as a clear bulleted list.
 - When comparing payers, use a structured format (payer | status | step therapy | PA required).
 - Always mention the policy effective date so the analyst knows how current the information is.
+- Focus exclusively on commercial medical benefit policies.
 """
 
 
@@ -41,7 +41,6 @@ def _fetch_context(question: str) -> tuple[list[dict], str]:
     q_lower = question.lower()
 
     # Try to extract drug name from question (crude but effective for demo)
-    # Look for known drug name patterns
     drug_terms = []
     for word in question.split():
         cleaned = word.strip("?.,;:'\"").lower()
@@ -94,7 +93,8 @@ def _fetch_context(question: str) -> tuple[list[dict], str]:
             seen.add(key)
             deduped.append(r)
 
-    search_summary = f"Found {len(deduped)} relevant coverage rule(s) across {len({(r.get('policies') or {}).get('payers', {}).get('name') for r in deduped})} payer(s)."
+    payer_set = {(r.get("policies") or {}).get("payers", {}).get("name") for r in deduped}
+    search_summary = f"Found {len(deduped)} relevant coverage rule(s) across {len(payer_set)} payer(s)."
     return deduped[:20], search_summary  # cap context at 20 rows
 
 

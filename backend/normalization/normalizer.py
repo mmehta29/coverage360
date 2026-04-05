@@ -162,6 +162,61 @@ def insert_drug_category_positions(policy_id: str, extracted: ExtractedPolicy):
         client.table("drug_category_positions").insert(rows).execute()
 
 
+def get_next_version_number(policy_id: str) -> int:
+    """Return the next version number for a policy."""
+    client = get_client()
+    result = (
+        client.table("policy_versions")
+        .select("version_number")
+        .eq("policy_id", policy_id)
+        .order("version_number", desc=True)
+        .limit(1)
+        .execute()
+    )
+    return (result.data[0]["version_number"] + 1) if result.data else 1
+
+
+def update_policy(
+    policy_id: str,
+    extracted: ExtractedPolicy,
+    raw_text_hash: str,
+    extracted_json: dict,
+) -> None:
+    """Update an existing policy row with a new extraction."""
+    client = get_client()
+    meta = extracted.policy_metadata
+    client.table("policies").update({
+        "raw_text_hash": raw_text_hash,
+        "extracted_json": json.dumps(extracted_json),
+        "effective_date": meta.effective_date,
+        "reviewed_date": meta.reviewed_date,
+        "revised_date": meta.revised_date,
+        "extracted_at": datetime.now(timezone.utc).isoformat(),
+    }).eq("id", policy_id).execute()
+
+    # Replace coverage rules with new ones
+    client.table("coverage_rules").delete().eq("policy_id", policy_id).execute()
+    client.table("drug_category_positions").delete().eq("policy_id", policy_id).execute()
+
+    # Re-upsert drugs
+    drug_id_map: dict[str, str] = {}
+    for drug in extracted.drugs:
+        drug_id = upsert_drug(drug)
+        drug_id_map[drug.generic_name] = drug_id
+
+    insert_coverage_rules(policy_id, drug_id_map, extracted)
+    insert_drug_category_positions(policy_id, extracted)
+
+
+def update_version_diff(policy_id: str, version_number: int, diff_result: dict) -> None:
+    """Store diff results on an existing policy_versions row."""
+    client = get_client()
+    client.table("policy_versions").update({
+        "diff_summary": json.dumps(diff_result),
+        "is_meaningful_change": diff_result.get("is_meaningful_change", False),
+    }).eq("policy_id", policy_id).eq("version_number", version_number).execute()
+
+
 def snapshot_policy_version(policy_id: str, raw_text_hash: str, extracted_json: dict, version_number: int = 1):
     """Save a version snapshot for change detection."""
     client = get_client()

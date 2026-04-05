@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 
 class HCPCSCode(BaseModel):
     code: str
-    description: Optional[str] = None
+    description: str
     unit: Optional[str] = None
 
 
@@ -50,8 +50,8 @@ class PACriteria(BaseModel):
     specialist_required: Optional[str] = None
     approval_duration_days: Optional[int] = None
     approval_duration_months: Optional[int] = None
-    reauth_required: Optional[bool] = False
-    reauth_criteria_same_as_initial: Optional[bool] = True
+    reauth_required: bool = False
+    reauth_criteria_same_as_initial: bool = True
 
 
 class DosingInfo(BaseModel):
@@ -69,7 +69,7 @@ class CoveredAlternative(BaseModel):
 
 class CoverageRuleSchema(BaseModel):
     drug_brand_name: Optional[str] = None
-    drug_generic_name: Optional[str] = None
+    drug_generic_name: str
     hcpcs_code: Optional[str] = None
 
     # Indication-level fields

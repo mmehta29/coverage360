@@ -94,6 +94,7 @@ export default function RecommendPage() {
   const [payerList,   setPayerList]   = useState([])
 
   const [drug,         setDrug]         = useState('')
+  const [drugObj,      setDrugObj]      = useState(null)   // full drug record
   const [drugInput,    setDrugInput]    = useState('')
   const [showDropdown, setShowDropdown] = useState(false)
   const [condition,    setCondition]    = useState('')
@@ -129,7 +130,16 @@ export default function RecommendPage() {
     return () => document.removeEventListener('mousedown', onClick)
   }, [])
 
-  const filteredDrugs = drugInput.length < 1 ? [] : drugList.filter(d => {
+  // Deduplicate by brand_name so the same drug doesn't appear multiple times
+  const seenNames = new Set()
+  const dedupedDrugs = drugList.filter(d => {
+    const key = (d.brand_name || d.generic_name || '').toLowerCase()
+    if (seenNames.has(key)) return false
+    seenNames.add(key)
+    return true
+  })
+
+  const filteredDrugs = drugInput.length < 1 ? [] : dedupedDrugs.filter(d => {
     const q = drugInput.toLowerCase()
     return (d.brand_name || '').toLowerCase().includes(q) || (d.generic_name || '').toLowerCase().includes(q)
   }).slice(0, 8)
@@ -138,9 +148,22 @@ export default function RecommendPage() {
     if (!drug.trim()) { setError('Please select a drug to analyze.'); return }
     setError(''); setLoading(true); setAnalyzed(false)
     try {
-      const res = await fetch(`/api/coverage/compare?drug=${encodeURIComponent(drug)}`)
-      if (!res.ok) throw new Error('Unable to load coverage data')
-      const data = await res.json()
+      // Try brand name first, fall back to generic name if no results
+      let data = null
+      const namesToTry = [drug]
+      const genericName = drugObj?.generic_name
+      if (genericName && genericName.toLowerCase() !== drug.toLowerCase()) {
+        namesToTry.push(genericName)
+      }
+
+      for (const name of namesToTry) {
+        const res = await fetch(`/api/coverage/compare?drug=${encodeURIComponent(name)}`)
+        if (!res.ok) throw new Error('Unable to load coverage data')
+        const d = await res.json()
+        if (Object.keys(d.comparison || {}).length > 0) { data = d; break }
+        data = d // keep last response even if empty
+      }
+
       let scored = Object.values(data.comparison || {}).map(p => ({
         ...p, score: scorePayerForPrefs(p, prefs, budget)
       }))
@@ -153,8 +176,7 @@ export default function RecommendPage() {
       setAnalyzed(true)
 
       if (prefs.switchDrugs) {
-        const sel = drugList.find(d => d.brand_name === drug || d.generic_name === drug)
-        const drugClass = sel?.drug_class
+        const drugClass = drugObj?.drug_class
         if (drugClass) {
           const alts = drugList.filter(d => d.drug_class === drugClass && d.brand_name !== drug && d.generic_name !== drug).slice(0, 4)
           const altData = await Promise.all(alts.map(async alt => {
@@ -229,28 +251,35 @@ export default function RecommendPage() {
 
           {/* Input panel */}
           <div className="rec-panel">
+            {/* Row 1: Drug + Condition */}
             <div className="rec-panel-row">
               {/* Drug combobox */}
-              <div className="rec-field" ref={dropdownRef} style={{ position: 'relative', flex: '1.4' }}>
+              <div className="rec-field" ref={dropdownRef} style={{ position: 'relative', flex: '1.5' }}>
                 <label className="rec-label">Drug name <span className="rec-required">*</span></label>
                 <input
                   className="rec-input"
                   value={drugInput}
-                  onChange={e => { setDrugInput(e.target.value); setShowDropdown(true); setDrug('') }}
+                  onChange={e => { setDrugInput(e.target.value); setShowDropdown(true); setDrug(''); setDrugObj(null) }}
                   onFocus={() => setShowDropdown(true)}
                   placeholder="Brand or generic name…"
                 />
                 {drug && (
                   <span className="rec-input-chip">
-                    {drug}
-                    <button onClick={() => { setDrug(''); setDrugInput('') }} className="rec-chip-x">×</button>
+                    <span>{drug}</span>
+                    {drugObj?.generic_name && drugObj.generic_name.toLowerCase() !== drug.toLowerCase() && (
+                      <span style={{ fontWeight: 400, opacity: 0.7, fontSize: 11 }}> · {drugObj.generic_name}</span>
+                    )}
+                    <button onClick={() => { setDrug(''); setDrugObj(null); setDrugInput('') }} className="rec-chip-x">×</button>
                   </span>
                 )}
                 {showDropdown && filteredDrugs.length > 0 && (
                   <div className="rec-dropdown">
                     {filteredDrugs.map(d => (
-                      <button key={d.brand_name || d.generic_name} className="rec-dropdown-item"
-                        onClick={() => { setDrug(d.brand_name || d.generic_name); setDrugInput(d.brand_name || d.generic_name); setShowDropdown(false) }}>
+                      <button key={(d.brand_name || d.generic_name) + '|' + (d.generic_name || '')} className="rec-dropdown-item"
+                        onClick={() => {
+                          const name = d.brand_name || d.generic_name
+                          setDrug(name); setDrugObj(d); setDrugInput(name); setShowDropdown(false)
+                        }}>
                         <span className="rec-dd-brand">{d.brand_name || d.generic_name}</span>
                         {d.generic_name && d.brand_name && <span className="rec-dd-generic">{d.generic_name}</span>}
                         {d.drug_class && <span className="rec-dd-class">{d.drug_class}</span>}
@@ -260,11 +289,14 @@ export default function RecommendPage() {
                 )}
               </div>
 
-              <div className="rec-field" style={{ flex: '1.2' }}>
+              <div className="rec-field" style={{ flex: '1.3' }}>
                 <label className="rec-label">Condition / diagnosis</label>
                 <input className="rec-input" value={condition} onChange={e => setCondition(e.target.value)} placeholder="e.g. Rheumatoid Arthritis" />
               </div>
+            </div>
 
+            {/* Row 2: Filters */}
+            <div className="rec-panel-row" style={{ borderTop: '1px solid var(--line)', paddingTop: 14, marginTop: 2 }}>
               <div className="rec-field" style={{ flex: '0.7' }}>
                 <label className="rec-label">Severity</label>
                 <select className="rec-select" value={severity} onChange={e => setSeverity(e.target.value)}>
@@ -272,33 +304,16 @@ export default function RecommendPage() {
                 </select>
               </div>
 
-              <div className="rec-field" style={{ flex: '0.9' }}>
+              <div className="rec-field" style={{ flex: '1' }}>
                 <label className="rec-label">Payer focus</label>
                 <select className="rec-select" value={payerFocus} onChange={e => setPayerFocus(e.target.value)}>
                   <option value="">All payers</option>
                   {payerList.map(p => <option key={p}>{p}</option>)}
                 </select>
               </div>
-            </div>
 
-            <div className="rec-panel-row rec-panel-row-2">
-              <div className="rec-prefs-group">
-                <span className="rec-group-label">Preferences</span>
-                <div className="rec-pref-pills">
-                  {PREF_OPTS.map(p => (
-                    <button key={p.key} className={`rec-pref-pill${prefs[p.key] ? ' active' : ''}`}
-                      onClick={() => setPrefs(prev => ({ ...prev, [p.key]: !prev[p.key] }))}>
-                      <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                        <path d={p.icon} />
-                      </svg>
-                      {p.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="rec-budget-group">
-                <span className="rec-group-label">Budget</span>
+              <div className="rec-field" style={{ flex: '0.9' }}>
+                <label className="rec-label">Budget sensitivity</label>
                 <div className="rec-budget-seg">
                   {BUDGET_OPTS.map(b => (
                     <button key={b} className={`rec-budget-btn${budget === b ? ' active' : ''}`} onClick={() => setBudget(b)}>
@@ -308,9 +323,27 @@ export default function RecommendPage() {
                 </div>
               </div>
 
-              <button className="rec-analyze-btn" onClick={handleAnalyze} disabled={loading}>
-                {loading ? 'Analyzing…' : 'Analyze Coverage →'}
-              </button>
+              <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: 2 }}>
+                <button className="rec-analyze-btn" onClick={handleAnalyze} disabled={loading || !drug}>
+                  {loading ? 'Analyzing…' : 'Analyze Coverage →'}
+                </button>
+              </div>
+            </div>
+
+            {/* Row 3: Preferences */}
+            <div style={{ borderTop: '1px solid var(--line)', paddingTop: 12, marginTop: 2, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              <span className="rec-group-label" style={{ flexShrink: 0 }}>Preferences</span>
+              <div className="rec-pref-pills">
+                {PREF_OPTS.map(p => (
+                  <button key={p.key} className={`rec-pref-pill${prefs[p.key] ? ' active' : ''}`}
+                    onClick={() => setPrefs(prev => ({ ...prev, [p.key]: !prev[p.key] }))}>
+                    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d={p.icon} />
+                    </svg>
+                    {p.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {error && <div className="rec-error">{error}</div>}
@@ -347,7 +380,19 @@ export default function RecommendPage() {
               </div>
             )}
 
-            {analyzed && !loading && (
+            {analyzed && !loading && results.length === 0 && (
+              <div className="rec-empty-state">
+                <div className="rec-empty-icon">
+                  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--ink3)" strokeWidth="1.2">
+                    <circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01" strokeLinecap="round"/>
+                  </svg>
+                </div>
+                <div className="rec-empty-title">No coverage data found for <em>{drug}</em></div>
+                <div className="rec-empty-hint">This drug may not be indexed yet. Try uploading the payer policy PDF using the Upload PDF button.</div>
+              </div>
+            )}
+
+            {analyzed && !loading && results.length > 0 && (
               <>
                 <div className="rec-summary-strip">
                   <span className="rec-summary-count">{results.length}</span>
@@ -399,6 +444,7 @@ export default function RecommendPage() {
               </>
             )}
           </div>
+
         </div>
       </div>
       <TrustBar />

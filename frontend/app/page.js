@@ -13,7 +13,7 @@ import CompareView from '@/components/CompareView'
 import OrganizationProfile from '@/components/OrganizationProfile'
 import TrustBar from '@/components/TrustBar'
 import ChatWidget from '@/components/ChatWidget'
-import { INDEX_STATS } from '@/lib/mockData'
+import CategoryPosition from '@/components/CategoryPosition'
 
 const ALERTS_CACHE_TTL_MS = 5 * 60 * 1000
 
@@ -54,6 +54,7 @@ function HomeInner() {
   const [showWelcome, setShowWelcome] = useState(!searchParams.get('nav'))
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [nav, setNav] = useState(initialNav)
+  const [indexStats, setIndexStats] = useState(null)
   const [query, setQuery] = useState('')
   const [result, setResult] = useState(null)
   const [notFound, setNotFound] = useState(false)
@@ -70,6 +71,24 @@ function HomeInner() {
   const [compareData, setCompareData] = useState(null)
   const [compareLoading, setCompareLoading] = useState(false)
   const [compareError, setCompareError] = useState('')
+
+  // Fetch live index stats once on load
+  useEffect(() => {
+    fetch('/api/stats')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (d && (d.policies > 0 || d.payers > 0)) {
+          setIndexStats({
+            policies: d.policies,
+            payers: d.payers,
+            updated: d.last_updated
+              ? new Date(d.last_updated).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+              : new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          })
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     if (!user || nav !== 'heatmap' || heatmapData.drugs.length > 0 || heatmapLoading) return
@@ -99,7 +118,7 @@ function HomeInner() {
 
     setAlertsLoading(true)
     setAlertsError('')
-    fetch('/api/alerts')
+    fetch('/api/alerts?days=30')
       .then(async response => {
         const data = await response.json()
         if (!response.ok) throw new Error(data.error || 'Unable to load alerts')
@@ -204,7 +223,7 @@ function HomeInner() {
                 query={query}
                 onQueryChange={setQuery}
                 onSearch={handleSearch}
-                indexStats={INDEX_STATS}
+                indexStats={indexStats}
               />
               <div className="content">
                 {loading && <div className="search-status">Searching...</div>}
@@ -238,6 +257,7 @@ function HomeInner() {
                       </div>
                     </div>
                     <CoverageTable rows={result.coverage} />
+                  <CategoryPosition drugName={result.name} />
                   </>
                 )}
               </div>

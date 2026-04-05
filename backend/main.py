@@ -54,6 +54,84 @@ def health():
     return {"status": "ok", "service": "coverage360-backend"}
 
 
+@app.get("/stats")
+def get_stats():
+    """Live index stats: policy count, payer count, last ingestion date."""
+    client = get_client()
+    policies = client.table("policies").select("id", count="exact").execute()
+    payers = client.table("payers").select("id", count="exact").execute()
+    latest = (
+        client.table("policies")
+        .select("extracted_at")
+        .order("extracted_at", desc=True)
+        .limit(1)
+        .execute()
+    )
+    last_updated = latest.data[0]["extracted_at"] if latest.data else None
+    return {
+        "policies": policies.count or 0,
+        "payers": payers.count or 0,
+        "last_updated": last_updated,
+    }
+
+
+@app.post("/ingest/url")
+async def ingest_url_policy(body: dict):
+    """Download a PDF from a URL and ingest it, same pipeline as file upload."""
+    if not CLAUDE_API_KEY:
+        raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY is not set")
+
+    url = (body.get("url") or "").strip()
+    if not url:
+        raise HTTPException(status_code=400, detail="url is required")
+    if not url.startswith(("http://", "https://")):
+        raise HTTPException(status_code=400, detail="url must start with http:// or https://")
+
+    import httpx
+    try:
+        async with httpx.AsyncClient(follow_redirects=True, timeout=30) as hx:
+            resp = await hx.get(url)
+            resp.raise_for_status()
+    except httpx.HTTPStatusError as e:
+        raise HTTPException(status_code=400, detail=f"Could not download URL: HTTP {e.response.status_code}")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Could not download URL: {e}")
+
+    content_type = resp.headers.get("content-type", "")
+    suffix = ".pdf" if "pdf" in content_type else ".docx" if "word" in content_type else ".pdf"
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+        tmp.write(resp.content)
+        tmp_path = tmp.name
+
+    try:
+        policy, _raw_text, text_hash = extract_policy(tmp_path, CLAUDE_API_KEY)
+
+        client = get_client()
+        existing = client.table("policies").select("id").eq("raw_text_hash", text_hash).execute()
+        if existing.data:
+            return {
+                "status": "duplicate",
+                "message": "This document has already been ingested.",
+                "policy_id": existing.data[0]["id"],
+            }
+
+        result = normalize_and_store(policy, text_hash, url)
+        return {
+            "status": "success",
+            "source_url": url,
+            "policy_title": policy.policy_metadata.policy_title,
+            "payer": policy.policy_metadata.payer_name,
+            **result,
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Extraction failed: {str(e)}")
+    finally:
+        os.unlink(tmp_path)
+
+
 # ── Ingestion ──────────────────────────────────────────────────────────────────
 
 @app.post("/ingest/upload")

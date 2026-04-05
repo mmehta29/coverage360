@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useUser } from '@auth0/nextjs-auth0/client'
 import Topbar from '@/components/Topbar'
 import Sidebar from '@/components/Sidebar'
 import SearchHero from '@/components/SearchHero'
@@ -7,11 +8,13 @@ import CoverageTable from '@/components/CoverageTable'
 import CoverageHeatmap from '@/components/CoverageHeatmap'
 import AlertsPanel from '@/components/AlertsPanel'
 import CompareView from '@/components/CompareView'
+import OrganizationProfile from '@/components/OrganizationProfile'
 import TrustBar from '@/components/TrustBar'
 import { PAYERS as FALLBACK_PAYERS, INDEX_STATS } from '@/lib/mockData'
 
 const ALERTS_CACHE_KEY = 'coverage360-alerts-cache-v1'
 const ALERTS_CACHE_TTL_MS = 24 * 60 * 60 * 1000
+const ORG_PROFILE_STORAGE_PREFIX = 'coverage360-organization-profile-v1:'
 
 function PersistentChat({ drugName }) {
   const [messages, setMessages] = useState([])
@@ -179,6 +182,7 @@ function PersistentChat({ drugName }) {
 }
 
 export default function Home() {
+  const { user, isLoading } = useUser()
   const [nav, setNav] = useState('search')
   const [query, setQuery] = useState('Rituximab')
   const [result, setResult] = useState(null)
@@ -194,18 +198,34 @@ export default function Home() {
   const [alertsData, setAlertsData] = useState([])
   const [alertsLoading, setAlertsLoading] = useState(false)
   const [alertsError, setAlertsError] = useState('')
+  const [organizationProfile, setOrganizationProfile] = useState(null)
 
   useEffect(() => {
+    if (!user?.sub || typeof window === 'undefined') {
+      setOrganizationProfile(null)
+      return
+    }
+
+    try {
+      const raw = window.localStorage.getItem(`${ORG_PROFILE_STORAGE_PREFIX}${user.sub}`)
+      setOrganizationProfile(raw ? JSON.parse(raw) : null)
+    } catch {
+      setOrganizationProfile(null)
+    }
+  }, [user?.sub])
+
+  useEffect(() => {
+    if (!user) return
     fetch('/api/payers')
       .then(response => response.ok ? response.json() : null)
       .then(data => {
         if (data?.length) setPayers(data.map(payer => payer.short_name || payer.name))
       })
       .catch(() => {})
-  }, [])
+  }, [user])
 
   useEffect(() => {
-    if (nav !== 'heatmap' || heatmapData.drugs.length > 0 || heatmapLoading) return
+    if (!user || nav !== 'heatmap' || heatmapData.drugs.length > 0 || heatmapLoading) return
 
     setHeatmapLoading(true)
     setHeatmapError('')
@@ -217,10 +237,10 @@ export default function Home() {
       })
       .catch(error => setHeatmapError(error.message || 'Unable to load heatmap'))
       .finally(() => setHeatmapLoading(false))
-  }, [nav, heatmapData.drugs.length, heatmapLoading])
+  }, [user, nav, heatmapData.drugs.length, heatmapLoading])
 
   useEffect(() => {
-    if (nav !== 'alerts' || alertsLoading) return
+    if (!user || nav !== 'alerts' || alertsLoading) return
 
     const cached = readAlertsCache()
     const cacheIsFresh = cached && Date.now() - cached.savedAt < ALERTS_CACHE_TTL_MS
@@ -242,17 +262,17 @@ export default function Home() {
       })
       .catch(error => setAlertsError(error.message || 'Unable to load alerts'))
       .finally(() => setAlertsLoading(false))
-  }, [nav, alertsLoading])
+  }, [user, nav, alertsLoading])
 
   useEffect(() => {
     const cached = readAlertsCache()
-    if (cached?.alerts?.length) {
+    if (user && cached?.alerts?.length) {
       setAlertsData(cached.alerts)
     }
-  }, [])
+  }, [user])
 
   useEffect(() => {
-    if (nav !== 'compare' || !result?.name) return
+    if (!user || nav !== 'compare' || !result?.name) return
 
     setCompareLoading(true)
     setCompareError('')
@@ -264,7 +284,7 @@ export default function Home() {
       })
       .catch(error => setCompareError(error.message || 'Unable to load comparison'))
       .finally(() => setCompareLoading(false))
-  }, [nav, result?.name])
+  }, [user, nav, result?.name])
 
   async function handleSearch(nextQuery) {
     const trimmed = nextQuery.trim()
@@ -289,9 +309,38 @@ export default function Home() {
   const burdenStyle = result ? getBurdenStyle(result.burdenScore) : {}
   const alertCount = alertsData.filter(alert => alert.type === 'negative').length
 
+  if (isLoading) {
+    return (
+      <div className="auth-shell">
+        <div className="auth-card">
+          <div className="auth-title">Loading Coverage360</div>
+          <div className="auth-sub">Checking your session...</div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return (
+      <div className="auth-shell">
+        <div className="auth-card">
+          <div className="auth-eyebrow">Coverage360</div>
+          <div className="auth-title">Log in to continue</div>
+          <div className="auth-sub">Use Auth0 Universal Login to access the coverage recommendation workspace.</div>
+          <a className="btn-solid auth-link" href="/auth/login">Log in with Auth0</a>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div>
-      <Topbar payers={payers} />
+      <Topbar
+        payers={payers}
+        user={user}
+        organizationName={organizationProfile?.organizationName || ''}
+        onLogout={() => { window.location.href = '/auth/logout' }}
+      />
 
       <div className="shell">
         <Sidebar active={nav} onNav={setNav} alertCount={alertCount} />
@@ -357,6 +406,10 @@ export default function Home() {
                 error={heatmapError}
               />
             </div>
+          )}
+
+          {nav === 'organization' && (
+            <OrganizationProfile user={user} onProfileChange={setOrganizationProfile} />
           )}
 
           {nav === 'compare' && (

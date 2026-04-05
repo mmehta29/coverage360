@@ -57,9 +57,21 @@ function formatDate(iso) {
   return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
 }
 
+// Parse JSON field safely (handles string or object)
+function parseJsonField(field) {
+  if (!field) return null
+  if (typeof field === 'string') {
+    try { return JSON.parse(field) } catch { return null }
+  }
+  return field
+}
+
 // Bold headline (e.g. "Step therapy." or "PA required.")
 function buildHeadline(rules) {
-  const hasStep = rules.some(r => r.step_therapy?.length > 0)
+  const hasStep = rules.some(r => {
+    const st = parseJsonField(r.step_therapy)
+    return Array.isArray(st) && st.length > 0
+  })
   if (hasStep) return 'Step therapy.'
   const hasPA = rules.some(r => r.requires_prior_auth)
   if (hasPA) return 'PA required.'
@@ -71,18 +83,26 @@ function buildCriteria(rules) {
   const parts = []
 
   // Step therapy drugs from the first rule that has them
-  const stepRule = rules.find(r => r.step_therapy?.length > 0)
+  const stepRule = rules.find(r => {
+    const st = parseJsonField(r.step_therapy)
+    return Array.isArray(st) && st.length > 0
+  })
   if (stepRule) {
-    const agents = stepRule.step_therapy
+    const stepTherapy = parseJsonField(stepRule.step_therapy) || []
+    const agents = stepTherapy
       .flatMap(s => s.required_agents ?? [])
       .filter(Boolean)
     if (agents.length) parts.push(`Requires trial of: ${agents.slice(0, 3).join(', ')}.`)
   }
 
   // PA notes from pa_criteria criteria descriptions
-  const paRule = rules.find(r => r.pa_criteria?.criteria?.length > 0)
+  const paRule = rules.find(r => {
+    const pa = parseJsonField(r.pa_criteria)
+    return pa?.criteria?.length > 0
+  })
   if (paRule) {
-    const descs = paRule.pa_criteria.criteria
+    const paCriteria = parseJsonField(paRule.pa_criteria)
+    const descs = (paCriteria?.criteria || [])
       .slice(0, 2)
       .map(c => c.description)
       .filter(Boolean)
@@ -137,7 +157,10 @@ function adaptDrugSearch(data) {
       effective: formatDate(representative.policies?.effective_date),
       // private fields used for burden computation only
       _hasPA: rules.some(r => r.requires_prior_auth),
-      _hasStep: rules.some(r => r.step_therapy?.length > 0),
+      _hasStep: rules.some(r => {
+        const st = parseJsonField(r.step_therapy)
+        return Array.isArray(st) && st.length > 0
+      }),
       _hasSoC: rules.some(r => r.site_of_care_restriction),
     }
   })

@@ -114,7 +114,38 @@ button{font-family:var(--sans);}
 .pdot{width:5px;height:5px;border-radius:50%;background:currentColor;}
 .crit{font-size:12px;color:var(--ink2);line-height:1.5;}
 .crit b{color:var(--ink);font-weight:500;}
-.eff{font-size:11px;color:var(--ink3);font-family:var(--mono);}
+.eff{font-size:11px;color:var(--ink3);font-family:var(--mono);text-align:right;}
+
+/* Prior Auth badges */
+.pa-badge{display:inline-flex;align-items:center;font-size:10px;font-weight:500;padding:3px 8px;border-radius:4px;white-space:nowrap;background:var(--restricted-bg);color:var(--restricted);border:1px solid var(--restricted-br);}
+.pa-standard{background:#f0f4ff;color:#4a5c85;border-color:#c7d4f0;}
+.pa-specialty{background:#fef3e6;color:#8b5a2b;border-color:#f5d9b3;}
+.pa-medical{background:var(--restricted-bg);color:var(--restricted);border-color:var(--restricted-br);}
+.pa-none{font-size:11px;color:var(--ink3);}
+
+/* Expandable rows */
+.expandable-row{cursor:pointer;transition:background 0.15s;}
+.expandable-row:hover{background:var(--bg);}
+.expand-icon{display:inline-block;font-size:8px;color:var(--ink3);margin-left:6px;transition:transform 0.2s;}
+.expand-icon.expanded{transform:rotate(180deg);}
+
+/* Indication cell */
+.indication-cell{display:flex;flex-direction:column;gap:4px;}
+.indication-name{font-weight:500;color:var(--ink);font-size:12.5px;}
+.conditions-preview{font-size:11px;color:var(--ink3);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:300px;}
+
+/* Detail row */
+.detail-row{background:var(--bg);}
+.detail-row td{padding:0 !important;border-bottom:1px solid var(--line) !important;}
+.detail-panel{padding:16px 20px;display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:16px;}
+.detail-section{display:flex;flex-direction:column;gap:4px;}
+.detail-label{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:0.5px;color:var(--ink3);}
+.detail-value{font-size:12px;color:var(--ink);line-height:1.5;}
+.detail-list{margin:0;padding-left:16px;font-size:12px;color:var(--ink);line-height:1.6;}
+.detail-list li{margin-bottom:4px;}
+.alt-drugs{color:var(--covered);font-weight:500;}
+.policy-ref{font-style:italic;color:var(--ink2);}
+.detail-empty{font-size:12px;color:var(--ink3);font-style:italic;}
 
 .chat-well{display:flex;flex-direction:column;gap:9px;min-height:80px;max-height:280px;overflow-y:auto;}
 .chat-msg{padding:10px 13px;border-radius:var(--r);font-size:12.5px;line-height:1.6;}

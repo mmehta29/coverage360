@@ -16,21 +16,192 @@ import { INDEX_STATS } from '@/lib/mockData'
 
 const ALERTS_CACHE_TTL_MS = 5 * 60 * 1000
 
-function readAlertsCache() {
-  if (typeof window === 'undefined') return null
-  try {
-    const raw = window.localStorage.getItem('coverage360-alerts-cache')
-    return raw ? JSON.parse(raw) : null
-  } catch {
-    return null
-  }
-}
+function PersistentChat({ drugName }) {
+  const [messages, setMessages] = useState([])
+  const [input, setInput] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [isRecording, setIsRecording] = useState(false)
+  const [transcribing, setTranscribing] = useState(false)
+  const [voiceError, setVoiceError] = useState('')
+  const bottomRef = useRef(null)
+  const recorderRef = useRef(null)
+  const chunksRef = useRef([])
 
-function writeAlertsCache(alerts) {
-  if (typeof window === 'undefined') return
-  try {
-    window.localStorage.setItem('coverage360-alerts-cache', JSON.stringify({ alerts, savedAt: Date.now() }))
-  } catch {}
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
+
+  const send = useCallback(async () => {
+    const q = input.trim()
+    if (!q || loading) return
+    setInput('')
+    setMessages(prev => [...prev, { role: 'user', text: q }])
+    setLoading(true)
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: q, drug: drugName }),
+      })
+      const data = await res.json()
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        text: data.answer,
+        sources: data.sources,
+        evidence: Array.isArray(data.evidence) ? data.evidence : [],
+      }])
+    } catch {
+      setMessages(prev => [...prev, { role: 'assistant', text: 'Unable to reach the server.' }])
+    } finally {
+      setLoading(false)
+    }
+  }, [input, loading, drugName])
+
+  const toggleVoice = useCallback(async () => {
+    setVoiceError('')
+
+    if (isRecording) {
+      recorderRef.current?.stop()
+      setIsRecording(false)
+      return
+    }
+
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setVoiceError('This browser does not support microphone access.')
+        return
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      if (typeof MediaRecorder === 'undefined') {
+        stream.getTracks().forEach(track => track.stop())
+        setVoiceError('This browser does not support audio recording.')
+        return
+      }
+
+      const preferredMimeType = MediaRecorder.isTypeSupported?.('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : (MediaRecorder.isTypeSupported?.('audio/webm') ? 'audio/webm' : '')
+
+      const recorder = preferredMimeType
+        ? new MediaRecorder(stream, { mimeType: preferredMimeType })
+        : new MediaRecorder(stream)
+
+      chunksRef.current = []
+      recorderRef.current = recorder
+
+      recorder.ondataavailable = event => {
+        if (event.data.size > 0) chunksRef.current.push(event.data)
+      }
+
+      recorder.onstop = async () => {
+        stream.getTracks().forEach(track => track.stop())
+        const blob = new Blob(chunksRef.current, { type: recorder.mimeType || 'audio/webm' })
+        const formData = new FormData()
+        formData.append('audio', blob)
+        setTranscribing(true)
+
+        try {
+          const res = await fetch('/api/voice', { method: 'POST', body: formData })
+          const data = await res.json()
+          if (!res.ok) {
+            throw new Error(data.error || 'Transcription failed.')
+          }
+          if (data.transcript) {
+            setInput(data.transcript)
+          } else {
+            setVoiceError('No transcript was returned.')
+          }
+        } catch (error) {
+          setVoiceError(error?.message || 'Voice transcription failed.')
+        } finally {
+          setTranscribing(false)
+        }
+      }
+
+      recorder.start()
+      setIsRecording(true)
+    } catch (error) {
+      if (error?.name === 'NotAllowedError') {
+        setVoiceError('Microphone permission was denied.')
+      } else {
+        setVoiceError('Unable to start voice recording.')
+      }
+    }
+  }, [isRecording])
+
+  const micLabel = transcribing ? '...' : (isRecording ? 'Stop' : 'Mic')
+  const micTitle = isRecording ? 'Stop recording' : 'Record a question'
+
+  return (
+    <aside className="chat-panel">
+      <div className="chat-panel-head">
+        <span className="chat-panel-title">Ask a question</span>
+        <span className="chat-panel-grounded">Grounded in source policies</span>
+      </div>
+      <div className="chat-panel-body">
+        <div className="chat-panel-well">
+          {messages.length === 0 && !loading && (
+            <div className="chat-panel-empty">
+              Ask anything about {drugName
+                ? <><b style={{ color: 'var(--ink)' }}>{drugName}</b> - coverage rules, step therapy, site-of-care, or recent changes.</>
+                : 'any drug - coverage rules, step therapy, site-of-care, or policy changes.'}
+            </div>
+          )}
+          {messages.map((message, index) => (
+            <div key={index} className={`chat-msg ${message.role === 'user' ? 'chat-u' : 'chat-a'}`}>
+              {message.text}
+              {message.sources && <div className="chat-src">{message.sources}</div>}
+              {message.evidence?.length > 0 && (
+                <div className="chat-evidence-grid">
+                  {message.evidence.slice(0, 4).map((item, evidenceIndex) => (
+                    <div key={`${index}-${evidenceIndex}`} className="evidence-card">
+                      <div className="evidence-card-head">
+                        <span className="evidence-card-title">{item.policy_title || 'Policy'}</span>
+                        <span className="evidence-card-date">{formatEvidenceDate(item.effective_date)}</span>
+                      </div>
+                      <div className="evidence-card-meta">{item.payer_name || 'Unknown payer'} · {item.indication_name || 'All indications'}</div>
+                      <div className="evidence-card-list">
+                        <div><b>Status:</b> {labelEvidenceStatus(item.coverage_status)}</div>
+                        <div><b>Prior auth:</b> {item.requires_prior_auth ? 'Required' : 'Not required'}</div>
+                        {formatEvidenceStep(item.step_therapy) && <div><b>Step therapy:</b> {formatEvidenceStep(item.step_therapy)}</div>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+          {loading && (
+            <div className="chat-msg chat-a" style={{ color: 'var(--ink3)', fontStyle: 'italic' }}>Thinking...</div>
+          )}
+          <div ref={bottomRef} />
+        </div>
+        <div className="chat-input-row">
+          <button
+            className={`chat-mic-btn${isRecording ? ' recording' : ''}`}
+            onClick={toggleVoice}
+            title={micTitle}
+            disabled={transcribing}
+            type="button"
+          >
+            {micLabel}
+          </button>
+          <input
+            className="chat-input"
+            value={input}
+            onChange={event => setInput(event.target.value)}
+            onKeyDown={event => event.key === 'Enter' && send()}
+            placeholder={transcribing ? 'Transcribing...' : 'Ask about any drug or policy...'}
+          />
+          <button className="btn-solid chat-send-btn" onClick={send} disabled={loading} type="button">
+            Ask
+          </button>
+        </div>
+        {voiceError && <div className="chat-input-error">{voiceError}</div>}
+      </div>
+    </aside>
+  )
 }
 
 const DEV_USER = { name: 'Dev User', email: 'dev@local' }
@@ -47,7 +218,7 @@ export default function Home() {
   const [result, setResult] = useState(null)
   const [notFound, setNotFound] = useState(false)
   const [loading, setLoading] = useState(false)
-
+  const [payers, setPayers] = useState([])
   const [heatmapData, setHeatmapData] = useState({ drugs: [], payers: [], matrix: {} })
   const [heatmapLoading, setHeatmapLoading] = useState(false)
   const [heatmapError, setHeatmapError] = useState('')
@@ -193,7 +364,7 @@ export default function Home() {
                 query={query}
                 onQueryChange={setQuery}
                 onSearch={handleSearch}
-                indexStats={INDEX_STATS}
+                indexStats={null}
               />
               <div className="content">
                 {loading && <div className="search-status">Searching...</div>}
@@ -218,15 +389,29 @@ export default function Home() {
                         <div className="drug-name">{result.name}</div>
                         <div className="drug-generic">{result.generic}</div>
                         <div className="drug-tags">
-                          {result.tags.map(t => <span key={t} className="dtag">{t}</span>)}
+                          {result.tags.map(tag => <span key={tag} className="dtag">{tag}</span>)}
+                          {result.drugClass && <span className="dtag">{result.drugClass}</span>}
                         </div>
                       </div>
-                      <div className="burden-badge" style={burdenStyle}>
-                        <div className="burden-num" style={{color: burdenStyle.color}}>{result.burdenScore}</div>
-                        <div className="burden-lbl" style={{color: burdenStyle.color}}>burden</div>
-                      </div>
+                      {result.burdenScore !== null && (
+                        <div className="burden-badge" style={burdenStyle}>
+                          <div className="burden-num" style={{ color: burdenStyle.color }}>{result.burdenScore}</div>
+                          <div className="burden-lbl" style={{ color: burdenStyle.color }}>burden</div>
+                        </div>
+                      )}
                     </div>
-                    <CoverageTable rows={result.coverage} />
+                    {result.noCoverageData ? (
+                      <div className="no-coverage-notice">
+                        <div className="no-coverage-icon">📋</div>
+                        <div className="no-coverage-title">Coverage information not available</div>
+                        <div className="no-coverage-text">
+                          This drug exists in our database, but no payer coverage policies have been indexed yet.
+                          Coverage data will appear here once relevant policies are uploaded.
+                        </div>
+                      </div>
+                    ) : (
+                      <CoverageTable rows={result.coverage} />
+                    )}
                   </>
                 )}
               </div>
@@ -283,4 +468,45 @@ function getBurdenStyle(score) {
   if (score >= 70) return { borderColor: 'var(--denied-br)', background: 'var(--denied-bg)', color: 'var(--denied)' }
   if (score >= 50) return { borderColor: 'var(--restricted-br)', background: 'var(--restricted-bg)', color: 'var(--restricted)' }
   return { borderColor: 'var(--covered-br)', background: 'var(--covered-bg)', color: 'var(--covered)' }
+}
+
+function readAlertsCache() {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = window.localStorage.getItem(ALERTS_CACHE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed.alerts) ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+function writeAlertsCache(alerts) {
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage.setItem(ALERTS_CACHE_KEY, JSON.stringify({
+      alerts,
+      savedAt: Date.now(),
+    }))
+  } catch {}
+}
+
+function labelEvidenceStatus(status) {
+  if (['covered', 'preferred', 'preferred_specialty'].includes(status)) return 'Covered'
+  if (['non_preferred', 'non_specialty'].includes(status)) return 'Restricted'
+  if (status === 'not_covered' || status === 'unproven') return 'Denied'
+  return 'Unknown'
+}
+
+function formatEvidenceDate(iso) {
+  if (!iso) return 'Unknown date'
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+function formatEvidenceStep(steps) {
+  if (!Array.isArray(steps) || steps.length === 0) return null
+  const agents = steps.flatMap(step => step.required_agents ?? []).filter(Boolean)
+  if (!agents.length) return 'Required'
+  return `Try ${agents.slice(0, 2).join(', ')} first`
 }

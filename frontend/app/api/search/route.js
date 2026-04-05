@@ -1,17 +1,14 @@
 import { lookupDrug } from '@/lib/mockData'
 
-const BACKEND_URL = process.env.BACKEND_URL
+const BACKEND_URL = (process.env.BACKEND_URL || '').replace(/\/+$/, '')
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url)
   const query = (searchParams.get('q') ?? '').trim()
   if (!query) return Response.json({ error: 'Query required' }, { status: 400 })
 
-  // Fallback to mock when no backend is configured (local dev without backend running)
   if (!BACKEND_URL) {
-    const drug = lookupDrug(query)
-    if (!drug) return Response.json({ error: 'Not found' }, { status: 404 })
-    return Response.json(drug)
+    return Response.json({ error: 'Backend not configured' }, { status: 503 })
   }
 
   let res
@@ -26,6 +23,20 @@ export async function GET(request) {
   if (!res.ok) return Response.json({ error: 'Not found' }, { status: res.status })
 
   const data = await res.json()
+
+  // Drug exists but no coverage data
+  if (data.no_coverage_data && data.drug_info) {
+    return Response.json({
+      name: capitalize(data.drug_info.brand_name || data.drug_name),
+      generic: data.drug_info.generic_name || data.resolved_name || '',
+      tags: parseHcpcsCodes(data.drug_info.hcpcs_codes),
+      drugClass: data.drug_info.drug_class,
+      burdenScore: null,
+      coverage: [],
+      noCoverageData: true,
+    })
+  }
+
   if (!data.coverage || data.coverage.length === 0) {
     return Response.json({ error: 'Not found' }, { status: 404 })
   }
@@ -40,14 +51,6 @@ function mapStatus(backendStatus) {
   if (['covered', 'preferred', 'preferred_specialty'].includes(backendStatus)) return 'covered'
   if (['non_preferred', 'non_specialty'].includes(backendStatus)) return 'restricted'
   return 'denied' // not_covered, unproven, unknown
-}
-
-// Worst status wins when consolidating multiple rules for the same payer
-const STATUS_RANK = { denied: 2, restricted: 1, covered: 0 }
-function worstStatus(rules) {
-  return rules
-    .map(r => mapStatus(r.coverage_status))
-    .reduce((worst, s) => STATUS_RANK[s] > STATUS_RANK[worst] ? s : worst, 'covered')
 }
 
 // "Jan 2026" from "2026-01-15" or null
@@ -66,63 +69,6 @@ function parseJsonField(field) {
   return field
 }
 
-// Bold headline (e.g. "Step therapy." or "PA required.")
-function buildHeadline(rules) {
-  const hasStep = rules.some(r => {
-    const st = parseJsonField(r.step_therapy)
-    return Array.isArray(st) && st.length > 0
-  })
-  if (hasStep) return 'Step therapy.'
-  const hasPA = rules.some(r => r.requires_prior_auth)
-  if (hasPA) return 'PA required.'
-  return ''
-}
-
-// Plain-text criteria summary built from rule fields
-function buildCriteria(rules) {
-  const parts = []
-
-  // Step therapy drugs from the first rule that has them
-  const stepRule = rules.find(r => {
-    const st = parseJsonField(r.step_therapy)
-    return Array.isArray(st) && st.length > 0
-  })
-  if (stepRule) {
-    const stepTherapy = parseJsonField(stepRule.step_therapy) || []
-    const agents = stepTherapy
-      .flatMap(s => s.required_agents ?? [])
-      .filter(Boolean)
-    if (agents.length) parts.push(`Requires trial of: ${agents.slice(0, 3).join(', ')}.`)
-  }
-
-  // PA notes from pa_criteria criteria descriptions
-  const paRule = rules.find(r => {
-    const pa = parseJsonField(r.pa_criteria)
-    return pa?.criteria?.length > 0
-  })
-  if (paRule) {
-    const paCriteria = parseJsonField(paRule.pa_criteria)
-    const descs = (paCriteria?.criteria || [])
-      .slice(0, 2)
-      .map(c => c.description)
-      .filter(Boolean)
-    parts.push(...descs)
-  }
-
-  // General requirements
-  const genRule = rules.find(r => r.general_requirements?.length > 0)
-  if (genRule && parts.length < 2) {
-    parts.push(...genRule.general_requirements.slice(0, 2))
-  }
-
-  // Site-of-care
-  const socRule = rules.find(r => r.site_of_care_restriction)
-  if (socRule) parts.push(`Site of care: ${socRule.site_of_care_restriction}.`)
-
-  if (parts.length === 0) return 'See policy for details.'
-  return parts.slice(0, 3).join(' ')
-}
-
 // Burden score (0–100): PA + step therapy + denial weighting across payer rows
 function computeBurden(payerRows) {
   if (!payerRows.length) return 0
@@ -139,43 +85,67 @@ function computeBurden(payerRows) {
 }
 
 function adaptDrugSearch(data) {
-  // Group rules by payer name
-  const byPayer = {}
-  for (const rule of data.coverage) {
-    const key = rule.policies?.payers?.name ?? 'Unknown'
-    ;(byPayer[key] ??= []).push(rule)
-  }
+  // Build detailed rows - one per indication/payer combination
+  const coverageRows = data.coverage.map(rule => {
+    const stepTherapy = parseJsonField(rule.step_therapy) || []
+    const paCriteria = parseJsonField(rule.pa_criteria) || {}
+    const limitations = rule.limitations || []
+    const generalReqs = rule.general_requirements || []
+    const coveredAlts = parseJsonField(rule.covered_alternatives) || []
 
-  // One row per payer
-  const payerRows = Object.entries(byPayer).map(([payerName, rules]) => {
-    const representative = rules[0]
+    // Extract step therapy agents
+    const stepAgents = stepTherapy
+      .flatMap(s => s.required_agents ?? [])
+      .filter(Boolean)
+
+    // Extract PA criteria descriptions
+    const paDescriptions = (paCriteria?.criteria || [])
+      .map(c => c.description)
+      .filter(Boolean)
+
+    // Build conditions summary
+    const conditions = []
+    if (stepAgents.length) conditions.push(`Must try: ${stepAgents.slice(0, 3).join(', ')}`)
+    if (paDescriptions.length) conditions.push(...paDescriptions.slice(0, 2))
+    if (generalReqs.length) conditions.push(...generalReqs.slice(0, 2))
+
+    const status = mapStatus(rule.coverage_status)
+
     return {
-      payer: payerName,
-      status: worstStatus(rules),
-      criteriaHeadline: buildHeadline(rules),
-      criteria: buildCriteria(rules),
-      effective: formatDate(representative.policies?.effective_date),
-      // private fields used for burden computation only
-      _hasPA: rules.some(r => r.requires_prior_auth),
-      _hasStep: rules.some(r => {
-        const st = parseJsonField(r.step_therapy)
-        return Array.isArray(st) && st.length > 0
-      }),
-      _hasSoC: rules.some(r => r.site_of_care_restriction),
+      payer: rule.policies?.payers?.name ?? 'Unknown',
+      status,
+      indication: rule.indication_name || 'General',
+      requiresPriorAuth: rule.requires_prior_auth || false,
+      priorAuthType: rule.prior_auth_type || null,
+      conditions: conditions.slice(0, 3),
+      stepTherapy: stepAgents,
+      approvalDuration: paCriteria?.approval_duration_days || paCriteria?.approval_duration_months
+        ? (paCriteria.approval_duration_months ? `${paCriteria.approval_duration_months} months` : `${paCriteria.approval_duration_days} days`)
+        : null,
+      siteOfCare: rule.site_of_care_restriction || null,
+      limitations: limitations.slice(0, 3),
+      coveredAlternatives: coveredAlts.map(a => a.drug_name).filter(Boolean),
+      lineOfTherapy: rule.line_of_therapy || null,
+      evidenceBasis: rule.evidence_basis || null,
+      effective: formatDate(rule.policies?.effective_date),
+      policyTitle: rule.policies?.policy_title || null,
+      // For burden calculation
+      _hasPA: rule.requires_prior_auth,
+      _hasStep: stepAgents.length > 0,
+      _hasSoC: !!rule.site_of_care_restriction,
     }
   })
 
-  const burdenScore = computeBurden(payerRows)
+  const burdenScore = computeBurden(coverageRows)
 
-  // Strip private fields before returning
-  const coverage = payerRows.map(({ _hasPA, _hasStep, _hasSoC, ...row }) => row)
+  // Strip private fields
+  const coverage = coverageRows.map(({ _hasPA, _hasStep, _hasSoC, ...row }) => row)
 
-  // Build tags: unique HCPCS codes + biosimilar flag
+  // Build tags
   const hcpcsCodes = [...new Set(data.coverage.map(r => r.hcpcs_code).filter(Boolean))]
   const genericNames = [...new Set(data.coverage.map(r => r.drug_generic_name).filter(Boolean))]
   const brandNames = [...new Set(data.coverage.map(r => r.drug_brand_name).filter(Boolean))]
   const tags = [...hcpcsCodes.slice(0, 2)]
-  // Add biosimilar label if multiple generic names (brand + biosimilars)
   if (genericNames.length > 1) tags.push('Includes biosimilars')
 
   return {
@@ -187,7 +157,27 @@ function adaptDrugSearch(data) {
   }
 }
 
+// Parse HCPCS codes from drugs table JSON field
+function parseHcpcsCodes(hcpcsJson) {
+  if (!hcpcsJson) return []
+  try {
+    const parsed = typeof hcpcsJson === 'string' ? JSON.parse(hcpcsJson) : hcpcsJson
+    if (Array.isArray(parsed)) {
+      return parsed.map(h => h.code).filter(Boolean).slice(0, 2)
+    }
+  } catch {}
+  return []
+}
+
 function capitalize(str) {
   if (!str) return ''
   return str.charAt(0).toUpperCase() + str.slice(1)
+}
+
+function summarizeStepTherapy(value) {
+  const steps = parseJsonField(value)
+  if (!Array.isArray(steps) || steps.length === 0) return null
+  const agents = steps.flatMap(step => step.required_agents ?? []).filter(Boolean)
+  if (!agents.length) return 'Required'
+  return `Try ${agents.slice(0, 3).join(', ')} first`
 }

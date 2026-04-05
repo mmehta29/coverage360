@@ -140,6 +140,7 @@ async def answer_question(question: str, api_key: str) -> dict:
         )
 
     context_text = "\n---\n".join(context_lines)
+    evidence = [_build_evidence_row(row) for row in rows]
 
     client = anthropic.Anthropic(api_key=api_key)
     message = client.messages.create(
@@ -162,4 +163,38 @@ async def answer_question(question: str, api_key: str) -> dict:
         "answer": message.content[0].text,
         "sources": sources,
         "context_rows_used": len(rows),
+        "evidence": evidence,
     }
+
+
+def _build_evidence_row(row: dict) -> dict:
+    policy = row.get("policies") or {}
+    payer = policy.get("payers") or {}
+    step_therapy = _parse_json_field(row.get("step_therapy"), [])
+    pa_criteria = _parse_json_field(row.get("pa_criteria"), None)
+    return {
+        "payer_name": payer.get("name"),
+        "payer_short_name": payer.get("short_name"),
+        "policy_title": policy.get("policy_title"),
+        "policy_number": policy.get("policy_number"),
+        "effective_date": policy.get("effective_date"),
+        "drug_brand_name": row.get("drug_brand_name"),
+        "drug_generic_name": row.get("drug_generic_name"),
+        "indication_name": row.get("indication_name"),
+        "coverage_status": row.get("coverage_status"),
+        "requires_prior_auth": row.get("requires_prior_auth"),
+        "step_therapy": step_therapy,
+        "pa_criteria": pa_criteria,
+        "limitations": row.get("limitations") or [],
+    }
+
+
+def _parse_json_field(value, fallback):
+    if value in (None, ""):
+        return fallback
+    if isinstance(value, (dict, list)):
+        return value
+    try:
+        return json.loads(value)
+    except Exception:
+        return fallback

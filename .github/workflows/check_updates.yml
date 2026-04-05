@@ -35,5 +35,5 @@ jobs:
           CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-          OPENFDA_BASE_URL: https://api.fda.gov/drug
+OPENFDA_BASE_URL: https://api.fda.gov/drug
         run: python3 check_updates.py

@@ -343,14 +343,15 @@ def recent_changes(days: int = 1):
 async def chat(body: dict):
     """
     Natural language Q&A over the policy database.
-    Body: {"question": "Does Cigna cover Rituxan for lupus?"}
+    Body: {"question": "Does Cigna cover Rituxan for lupus?", "drug": "Rituximab"}
     """
     question = body.get("question", "").strip()
+    drug = body.get("drug", "").strip() if body.get("drug") else None
     if not question:
         raise HTTPException(400, "question is required")
     if not CLAUDE_API_KEY:
         raise HTTPException(500, "ANTHROPIC_API_KEY not configured")
-    return await answer_question(question, CLAUDE_API_KEY)
+    return await answer_question(question, CLAUDE_API_KEY, drug_hint=drug)
 
 
 def _parse_json_field(value, fallback=None):

@@ -32,7 +32,7 @@ Rules:
 """
 
 
-def _fetch_context(question: str) -> tuple[list[dict], str]:
+def _fetch_context(question: str, drug_hint: str | None = None) -> tuple[list[dict], str]:
     """
     Heuristically pull relevant rows from coverage_rules based on the question.
     Returns (rows, search_summary).
@@ -40,12 +40,15 @@ def _fetch_context(question: str) -> tuple[list[dict], str]:
     client = get_client()
     q_lower = question.lower()
 
-    # Try to extract drug name from question (crude but effective for demo)
+    # Prefer the explicit drug hint from the frontend, fall back to parsing the question
     drug_terms = []
-    for word in question.split():
-        cleaned = word.strip("?.,;:'\"").lower()
-        if len(cleaned) > 4:  # ignore short words
-            drug_terms.append(cleaned)
+    if drug_hint:
+        drug_terms = [drug_hint.lower()]
+    else:
+        for word in question.split():
+            cleaned = word.strip("?.,;:'\"").lower()
+            if len(cleaned) > 4:  # ignore short words
+                drug_terms.append(cleaned)
 
     # Try each potential drug term against the DB
     rows = []
@@ -98,11 +101,11 @@ def _fetch_context(question: str) -> tuple[list[dict], str]:
     return deduped[:20], search_summary  # cap context at 20 rows
 
 
-async def answer_question(question: str, api_key: str) -> dict:
+async def answer_question(question: str, api_key: str, drug_hint: str | None = None) -> dict:
     """
     Main RAG entry point. Returns {question, answer, sources, context_rows_used}.
     """
-    rows, search_summary = _fetch_context(question)
+    rows, search_summary = _fetch_context(question, drug_hint=drug_hint)
 
     if not rows:
         return {

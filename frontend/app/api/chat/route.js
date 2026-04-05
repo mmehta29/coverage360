@@ -19,5 +19,10 @@ export async function POST(request) {
   }
 
   const result = mockChatAnswer(question, drug)
-  return Response.json(result)
+  // Normalize sources to array for consistent frontend handling
+  return Response.json({
+    ...result,
+    sources: result.sources ? [result.sources] : [],
+    context_rows_used: 0,
+  })
 }

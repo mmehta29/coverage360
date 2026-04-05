@@ -2,21 +2,27 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
-const NAV = [
+// Items with href  → real Next.js routes (Link)
+// Items with navId → client-side tabs on the home page (button + onNav)
+const NAV_ITEMS = [
   {
     href: '/', label: 'Search',
     icon: <svg className="sb-icon" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5l3 3" strokeLinecap="round"/></svg>,
   },
+  {
+    href: '/recommend', label: 'Recommend',
+    icon: <svg className="sb-icon" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5"/><circle cx="8" cy="8" r="2"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15" strokeLinecap="round"/></svg>,
+  },
 ]
 
-const EXPLORE = [
+const EXPLORE_ITEMS = [
   {
-    id: 'organization', label: 'Organization',
+    navId: 'organization', label: 'Organization',
     icon: <svg className="sb-icon" viewBox="0 0 16 16"><rect x="2.5" y="3" width="11" height="10" rx="1.5"/><path d="M5 6h6M5 8.5h4M5 11h3"/></svg>,
   },
   {
-    id: 'heatmap', label: 'Heatmap',
-    icon: <svg className="sb-icon" viewBox="0 0 16 16"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M5 5.5h6M5 8h4M5 10.5h5"/></svg>,
+    navId: 'heatmap', label: 'Heatmap',
+    icon: <svg className="sb-icon" viewBox="0 0 16 16"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M2 6h12M2 10h12M6 2v12M10 2v12" strokeLinecap="round"/></svg>,
   },
   {
     href: '/ask', label: 'Ask AI',
@@ -24,13 +30,17 @@ const EXPLORE = [
   },
 ]
 
-export default function Sidebar({ alertCount = 0 }) {
+export default function Sidebar({ alertCount = 0, onNav }) {
   const pathname = usePathname()
 
   return (
     <aside className="sidebar">
-      {NAV.map(item => (
-        <Link key={item.href} href={item.href} className={`sb-item${pathname === item.href ? ' on' : ''}`}>
+      {NAV_ITEMS.map(item => (
+        <Link
+          key={item.href}
+          href={item.href}
+          className={`sb-item${pathname === item.href ? ' on' : ''}`}
+        >
           {item.icon}
           {item.label}
         </Link>
@@ -39,12 +49,26 @@ export default function Sidebar({ alertCount = 0 }) {
       <div className="sb-divider" />
       <div className="sb-label">Explore</div>
 
-      {EXPLORE.map(item => (
-        <Link key={item.href} href={item.href} className={`sb-item${pathname === item.href ? ' on' : ''}`}>
-          {item.icon}
-          {item.label}
-        </Link>
-      ))}
+      {EXPLORE_ITEMS.map(item => {
+        if (item.href) {
+          return (
+            <Link key={item.href} href={item.href} className={`sb-item${pathname === item.href ? ' on' : ''}`}>
+              {item.icon}
+              {item.label}
+            </Link>
+          )
+        }
+        return (
+          <button
+            key={item.navId}
+            className="sb-item"
+            onClick={() => onNav?.(item.navId)}
+          >
+            {item.icon}
+            {item.label}
+          </button>
+        )
+      })}
 
       <div className="sb-divider" />
 

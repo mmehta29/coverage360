@@ -1,4 +1,4 @@
-export default function Topbar({ onToggleSidebar }) {
+export default function Topbar({ onToggleSidebar, user, onLogout }) {
   return (
     <div className="topbar">
       <button onClick={onToggleSidebar} style={{background:'none',border:'none',cursor:'pointer',padding:'6px',marginRight:'8px',display:'flex',flexDirection:'column',gap:'4px'}}>

@@ -22,8 +22,8 @@ const EXPLORE = [
   },
 ]
 
-export default function Sidebar({ alertCount = 0, open = true }) {
-  const [active, setActive] = useState('search')
+export default function Sidebar({ alertCount = 0, open = true, active = 'search', onNav }) {
+  function go(id) { onNav?.(id) }
 
   return (
     <aside className="sidebar" style={{maxWidth: open ? '240px' : '0', overflow:'hidden', padding: open ? '' : '0', transition:'max-width 0.3s ease, padding 0.3s ease'}}>

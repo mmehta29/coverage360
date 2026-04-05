@@ -1,5 +1,6 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useUser } from '@auth0/nextjs-auth0/client'
 import WelcomePage from '@/components/WelcomePage'
 import Topbar from '@/components/Topbar'
 import Sidebar from '@/components/Sidebar'
@@ -10,15 +11,54 @@ import AlertsPanel from '@/components/AlertsPanel'
 import CompareView from '@/components/CompareView'
 import OrganizationProfile from '@/components/OrganizationProfile'
 import TrustBar from '@/components/TrustBar'
+import ChatWidget from '@/components/ChatWidget'
 import { INDEX_STATS } from '@/lib/mockData'
 
+const ALERTS_CACHE_TTL_MS = 5 * 60 * 1000
+
+function readAlertsCache() {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = window.localStorage.getItem('coverage360-alerts-cache')
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+function writeAlertsCache(alerts) {
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage.setItem('coverage360-alerts-cache', JSON.stringify({ alerts, savedAt: Date.now() }))
+  } catch {}
+}
+
+const DEV_USER = { name: 'Dev User', email: 'dev@local' }
+
 export default function Home() {
+  const skipAuth = process.env.NEXT_PUBLIC_SKIP_AUTH === 'true'
+  const auth = useUser()
+  const user = skipAuth ? DEV_USER : auth.user
+  const isLoading = skipAuth ? false : auth.isLoading
   const [showWelcome, setShowWelcome] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [nav, setNav] = useState('search')
   const [query, setQuery] = useState('')
   const [result, setResult] = useState(null)
   const [notFound, setNotFound] = useState(false)
   const [loading, setLoading] = useState(false)
+
+  const [heatmapData, setHeatmapData] = useState({ drugs: [], payers: [], matrix: {} })
+  const [heatmapLoading, setHeatmapLoading] = useState(false)
+  const [heatmapError, setHeatmapError] = useState('')
+
+  const [alertsData, setAlertsData] = useState([])
+  const [alertsLoading, setAlertsLoading] = useState(false)
+  const [alertsError, setAlertsError] = useState('')
+
+  const [compareData, setCompareData] = useState(null)
+  const [compareLoading, setCompareLoading] = useState(false)
+  const [compareError, setCompareError] = useState('')
 
   useEffect(() => {
     if (!user || nav !== 'heatmap' || heatmapData.drugs.length > 0 || heatmapLoading) return
@@ -88,7 +128,7 @@ export default function Home() {
     setQuery(trimmed)
     setNotFound(false)
     setLoading(true)
-    setShowWelcome(false) // Hide welcome page when searching
+    setShowWelcome(false)
     try {
       const res = await fetch(`/api/search?q=${encodeURIComponent(trimmed)}`)
       if (!res.ok) {
@@ -102,14 +142,9 @@ export default function Home() {
     }
   }
 
-  // Show welcome page first
   if (showWelcome) {
     return <WelcomePage onGetStarted={() => setShowWelcome(false)} />
   }
-
-  // Main app interface
-  const burdenStyle = result ? getBurdenStyle(result.burdenScore) : {}
-  const alertCount = alertsData.filter(alert => alert.type === 'negative').length
 
   if (isLoading) {
     return (
@@ -135,6 +170,9 @@ export default function Home() {
     )
   }
 
+  const burdenStyle = result ? getBurdenStyle(result.burdenScore) : {}
+  const alertCount = alertsData.filter(alert => alert.type === 'negative').length
+
   return (
     <div style={{position:'relative',minHeight:'100vh',overflow:'hidden',background:'#faf8f5'}}>
       {/* Watercolor washes */}
@@ -143,10 +181,10 @@ export default function Home() {
       <div style={{position:'fixed',bottom:'-60px',left:'30%',width:'580px',height:'500px',borderRadius:'55% 45% 60% 40% / 45% 55% 40% 60%',background:'radial-gradient(ellipse, rgba(220,60,140,0.28) 0%, rgba(200,40,120,0.14) 50%, transparent 75%)',filter:'blur(45px)',mixBlendMode:'multiply',pointerEvents:'none',zIndex:0}} />
       <div style={{position:'fixed',top:'40%',left:'20%',width:'400px',height:'400px',borderRadius:'50%',background:'radial-gradient(ellipse, rgba(255,200,80,0.2) 0%, transparent 70%)',filter:'blur(60px)',mixBlendMode:'multiply',pointerEvents:'none',zIndex:0}} />
       <div style={{position:'fixed',bottom:'10%',right:'15%',width:'350px',height:'350px',borderRadius:'50%',background:'radial-gradient(ellipse, rgba(80,160,220,0.22) 0%, transparent 70%)',filter:'blur(55px)',mixBlendMode:'multiply',pointerEvents:'none',zIndex:0}} />
-      <Topbar onToggleSidebar={() => setSidebarOpen(o => !o)} />
+      <Topbar onToggleSidebar={() => setSidebarOpen(o => !o)} user={user} onLogout={() => { window.location.href = '/auth/logout' }} />
 
       <div className="shell">
-        <Sidebar alertCount={3} open={sidebarOpen} />
+        <Sidebar alertCount={alertCount} open={sidebarOpen} active={nav} onNav={setNav} />
 
         <div className="center-col">
           {nav === 'search' && (
@@ -160,11 +198,11 @@ export default function Home() {
               <div className="content">
                 {loading && <div className="search-status">Searching...</div>}
 
-            {notFound && !loading && (
-              <div className="search-status">
-                No results for <b>{query}</b>. Try searching by brand name, generic name, or J-code.
-              </div>
-            )}
+                {notFound && !loading && (
+                  <div className="search-status">
+                    No results for <b>{query}</b>. Try searching by brand name, generic name, or J-code.
+                  </div>
+                )}
 
                 {!result && !loading && !notFound && (
                   <div className="empty-state">
@@ -173,27 +211,65 @@ export default function Home() {
                   </div>
                 )}
 
-            {result && !loading && (
-              <>
-                <div className="result-top">
-                  <div>
-                    <div className="drug-name">{result.name}</div>
-                    <div className="drug-generic">{result.generic}</div>
-                    <div className="drug-tags">
-                      {result.tags.map(t => <span key={t} className="dtag">{t}</span>)}
+                {result && !loading && (
+                  <>
+                    <div className="result-top">
+                      <div>
+                        <div className="drug-name">{result.name}</div>
+                        <div className="drug-generic">{result.generic}</div>
+                        <div className="drug-tags">
+                          {result.tags.map(t => <span key={t} className="dtag">{t}</span>)}
+                        </div>
+                      </div>
+                      <div className="burden-badge" style={burdenStyle}>
+                        <div className="burden-num" style={{color: burdenStyle.color}}>{result.burdenScore}</div>
+                        <div className="burden-lbl" style={{color: burdenStyle.color}}>burden</div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="burden-badge" style={burdenStyle}>
-                    <div className="burden-num" style={{color: burdenStyle.color}}>{result.burdenScore}</div>
-                    <div className="burden-lbl" style={{color: burdenStyle.color}}>burden</div>
-                  </div>
-                </div>
+                    <CoverageTable rows={result.coverage} />
+                  </>
+                )}
+              </div>
+            </>
+          )}
 
-                <CoverageTable rows={result.coverage} />
-              </>
-            )}
-          </div>
+          {nav === 'heatmap' && (
+            <div className="content">
+              <CoverageHeatmap
+                drugs={heatmapData.drugs}
+                payers={heatmapData.payers}
+                matrix={heatmapData.matrix}
+                loading={heatmapLoading}
+                error={heatmapError}
+              />
+            </div>
+          )}
 
+          {nav === 'alerts' && (
+            <div className="content">
+              <AlertsPanel
+                alerts={alertsData}
+                loading={alertsLoading}
+                error={alertsError}
+              />
+            </div>
+          )}
+
+          {nav === 'compare' && (
+            <div className="content">
+              <CompareView
+                result={result}
+                comparisonData={compareData}
+                loading={compareLoading}
+                error={compareError}
+                onGoToSearch={() => setNav('search')}
+              />
+            </div>
+          )}
+
+          {nav === 'organization' && (
+            <OrganizationProfile user={user} />
+          )}
         </div>
 
         <ChatWidget drugName={result?.name} />

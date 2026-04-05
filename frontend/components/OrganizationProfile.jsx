@@ -21,6 +21,8 @@ export default function OrganizationProfile({ user, onProfileChange }) {
 
   const [profile, setProfile] = useState(EMPTY_PROFILE)
   const [saved, setSaved] = useState(false)
+  const [subscribeStatus, setSubscribeStatus] = useState('') // '' | 'subscribing' | 'subscribed' | 'error'
+  const [showPopup, setShowPopup] = useState(false)
 
   useEffect(() => {
     const nextProfile = normalizeProfile(readStorage(storageKey))
@@ -28,13 +30,34 @@ export default function OrganizationProfile({ user, onProfileChange }) {
     onProfileChange?.(nextProfile)
   }, [onProfileChange, storageKey])
 
-  function saveProfile() {
+  async function saveProfile() {
     const normalized = normalizeProfile(profile)
     writeStorage(storageKey, normalized)
-    setProfile(normalized)
     onProfileChange?.(normalized)
     setSaved(true)
-    window.setTimeout(() => setSaved(false), 2000)
+    setShowPopup(true)
+    setProfile(EMPTY_PROFILE)
+    window.setTimeout(() => { setSaved(false); setShowPopup(false) }, 3000)
+
+    // Subscribe email to alerts if provided
+    if (normalized.contactEmail) {
+      setSubscribeStatus('subscribing')
+      try {
+        const res = await fetch('/api/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: normalized.contactEmail,
+            name: normalized.contactName,
+            org_name: normalized.organizationName,
+          }),
+        })
+        setSubscribeStatus(res.ok ? 'subscribed' : 'error')
+      } catch {
+        setSubscribeStatus('error')
+      }
+      window.setTimeout(() => setSubscribeStatus(''), 4000)
+    }
   }
 
   const orgSummary = profile.organizationName
@@ -42,7 +65,41 @@ export default function OrganizationProfile({ user, onProfileChange }) {
     : 'No organization profile saved yet.'
 
   return (
-    <div className="content org-content">
+    <div className="content org-content" style={{ position: 'relative' }}>
+      {showPopup && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 999,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(15,20,40,0.35)', backdropFilter: 'blur(6px)',
+        }}>
+          <div style={{
+            background: 'rgba(255,255,255,0.97)', borderRadius: 20,
+            padding: '36px 44px', textAlign: 'center', maxWidth: 360,
+            boxShadow: '0 24px 64px rgba(0,0,0,0.16)',
+            border: '1.5px solid rgba(255,255,255,0.8)',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
+          }}>
+            <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'var(--covered-bg)', border: '2px solid var(--covered-br)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--covered)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 6L9 17l-5-5"/>
+              </svg>
+            </div>
+            <div style={{ fontFamily: 'var(--serif)', fontSize: 20, fontWeight: 700, color: 'var(--navy)' }}>Profile saved</div>
+            {subscribeStatus === 'subscribed' ? (
+              <div style={{ fontSize: 13, color: 'var(--ink2)', lineHeight: 1.6 }}>
+                Your organization profile has been saved and you're subscribed to policy alert digests.
+              </div>
+            ) : (
+              <div style={{ fontSize: 13, color: 'var(--ink2)', lineHeight: 1.6 }}>
+                Your organization profile has been saved successfully.
+              </div>
+            )}
+            {subscribeStatus === 'subscribing' && (
+              <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Subscribing to alerts…</div>
+            )}
+          </div>
+        </div>
+      )}
       <div className="view-header">
         <div className="view-title">Organization profile</div>
         <div className="view-sub">Manage the organization context used for your coverage recommendation workflow.</div>
@@ -51,7 +108,6 @@ export default function OrganizationProfile({ user, onProfileChange }) {
       <section className="card org-card">
         <div className="card-head">
           <span className="card-title">Profile details</span>
-          {saved && <span className="org-status-msg">Saved</span>}
         </div>
         <div className="card-body org-form">
           <div className="org-summary">

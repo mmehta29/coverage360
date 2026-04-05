@@ -46,7 +46,12 @@ app.add_middleware(
 )
 
 CLAUDE_API_KEY = os.getenv("CLAUDE_API_KEY") or os.getenv("ANTHROPIC_API_KEY")
+RESEND_API_KEY = os.getenv("RESEND_API_KEY")
 ALLOWED_EXTENSIONS = {".pdf", ".docx", ".doc"}
+
+if RESEND_API_KEY:
+    import resend
+    resend.api_key = RESEND_API_KEY
 
 
 @app.get("/health")
@@ -459,6 +464,200 @@ async def chat(body: dict):
     if not CLAUDE_API_KEY:
         raise HTTPException(500, "ANTHROPIC_API_KEY not configured")
     return await answer_question(question, CLAUDE_API_KEY, drug_hint=drug)
+
+
+# ── Email subscriptions ────────────────────────────────────────────────────────
+
+@app.post("/subscribe")
+def subscribe(body: dict):
+    """Save a subscriber email to the subscribers table."""
+    email = (body.get("email") or "").strip().lower()
+    if not email or "@" not in email:
+        raise HTTPException(status_code=400, detail="Valid email is required")
+
+    name = (body.get("name") or "").strip()
+    org_name = (body.get("org_name") or "").strip()
+
+    client = get_client()
+    try:
+        client.table("subscribers").upsert(
+            {"email": email, "name": name, "org_name": org_name, "active": True},
+            on_conflict="email",
+        ).execute()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Could not save subscriber: {e}")
+
+    # Send welcome email
+    if RESEND_API_KEY:
+        try:
+            import resend
+            resend.Emails.send({
+                "from": "onboarding@resend.dev",
+                "to": email,
+                "subject": "Coverage360 Alerts — You're subscribed",
+                "html": _welcome_email_html(name or email),
+            })
+        except Exception:
+            pass  # Don't fail the subscribe if email fails
+
+    return {"status": "subscribed", "email": email}
+
+
+@app.post("/notify")
+def send_alert_digest(body: dict = {}):
+    """Send an alert digest email to all active subscribers."""
+    if not RESEND_API_KEY:
+        raise HTTPException(status_code=503, detail="RESEND_API_KEY not configured")
+
+    days = int(body.get("days", 30))
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    client = get_client()
+
+    # Get recent meaningful changes
+    changes_result = (
+        client.table("policy_versions")
+        .select(
+            "diff_summary, is_meaningful_change, snapshotted_at, "
+            "policies(id, policy_title, payers(name, short_name))"
+        )
+        .eq("is_meaningful_change", True)
+        .gte("snapshotted_at", cutoff)
+        .order("snapshotted_at", desc=True)
+        .limit(20)
+        .execute()
+    )
+    changes = changes_result.data or []
+
+    # Get all active subscribers
+    subs_result = client.table("subscribers").select("email, name").eq("active", True).execute()
+    subscribers = subs_result.data or []
+
+    if not subscribers:
+        return {"status": "no_subscribers", "sent": 0}
+
+    import resend
+    sent = 0
+    errors = []
+    for sub in subscribers:
+        try:
+            resend.Emails.send({
+                "from": "onboarding@resend.dev",
+                "to": sub["email"],
+                "subject": f"Coverage360 Alert Digest — {len(changes)} policy change{'s' if len(changes) != 1 else ''} detected",
+                "html": _digest_email_html(sub.get("name") or sub["email"], changes, days),
+            })
+            sent += 1
+        except Exception as e:
+            errors.append({"email": sub["email"], "error": str(e)})
+
+    return {"status": "sent", "sent": sent, "total_subscribers": len(subscribers), "alerts": len(changes), "errors": errors}
+
+
+def _welcome_email_html(name: str) -> str:
+    return f"""
+<!DOCTYPE html>
+<html>
+<body style="margin:0;padding:0;background:#faf8f5;font-family:'Helvetica Neue',Arial,sans-serif;">
+  <div style="max-width:560px;margin:40px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+    <div style="background:linear-gradient(135deg,#15173f 0%,#3e5161 100%);padding:32px 40px;">
+      <div style="color:#91bfeb;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;">Coverage360</div>
+      <h1 style="color:#fff;margin:0;font-size:24px;font-weight:700;">You're subscribed to policy alerts</h1>
+    </div>
+    <div style="padding:32px 40px;">
+      <p style="color:#4a5f78;font-size:15px;line-height:1.6;margin:0 0 20px;">Hi {name},</p>
+      <p style="color:#4a5f78;font-size:15px;line-height:1.6;margin:0 0 20px;">
+        You'll now receive email digests when payer policies change — prior auth updates,
+        step therapy additions, coverage status changes, and more.
+      </p>
+      <div style="background:#f7f9fc;border-radius:10px;padding:20px 24px;margin:24px 0;">
+        <div style="color:#8a9db5;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">What we monitor</div>
+        <ul style="color:#1c2b3a;font-size:14px;line-height:1.8;margin:0;padding-left:20px;">
+          <li>Prior authorization requirement changes</li>
+          <li>Step therapy additions or removals</li>
+          <li>Coverage status updates (covered → not covered)</li>
+          <li>New payer policies ingested</li>
+        </ul>
+      </div>
+      <p style="color:#8a9db5;font-size:13px;line-height:1.6;margin:24px 0 0;">
+        To unsubscribe, update your Organization Profile in Coverage360.
+      </p>
+    </div>
+  </div>
+</body>
+</html>
+"""
+
+
+def _digest_email_html(name: str, changes: list, days: int) -> str:
+    if not changes:
+        alerts_html = '<p style="color:#8a9db5;font-size:14px;">No meaningful policy changes detected in this period.</p>'
+    else:
+        items = []
+        for c in changes:
+            policy = c.get("policies") or {}
+            payer = (policy.get("payers") or {})
+            payer_name = payer.get("name", "Unknown Payer")
+            policy_title = policy.get("policy_title", "Policy update")
+            diff = _parse_json_field(c.get("diff_summary"), {}) or {}
+            summary = diff.get("diff_summary", "Policy updated.")
+            change_types = diff.get("change_types") or []
+            date_str = (c.get("snapshotted_at") or "")[:10]
+
+            # Color bar based on change type
+            color = "#a32d2d"
+            for ct in change_types:
+                if "added" in ct or "loosened" in ct or "new" in ct:
+                    color = "#0f7251"
+                    break
+                if "cosmetic" in ct:
+                    color = "#854f0b"
+                    break
+
+            tags_html = "".join([
+                f'<span style="font-size:10px;padding:2px 8px;border-radius:4px;background:#f0f4ff;color:#4a5c85;margin-right:4px;">{t.replace("_"," ").title()}</span>'
+                for t in change_types[:3]
+            ])
+
+            items.append(f"""
+<div style="border-left:4px solid {color};padding:14px 18px;margin-bottom:12px;background:#fff;border-radius:0 10px 10px 0;box-shadow:0 1px 4px rgba(0,0,0,0.05);">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+    <div>
+      <div style="font-size:14px;font-weight:700;color:#15173f;">{payer_name}</div>
+      <div style="font-size:11px;color:#8a9db5;font-family:monospace;">{policy_title}</div>
+    </div>
+    <div style="font-size:11px;color:#8a9db5;font-family:monospace;white-space:nowrap;margin-left:12px;">{date_str}</div>
+  </div>
+  <p style="font-size:13px;color:#4a5f78;line-height:1.5;margin:8px 0;">{summary}</p>
+  <div style="margin-top:8px;">{tags_html}</div>
+</div>""")
+
+        alerts_html = "".join(items)
+
+    return f"""
+<!DOCTYPE html>
+<html>
+<body style="margin:0;padding:0;background:#faf8f5;font-family:'Helvetica Neue',Arial,sans-serif;">
+  <div style="max-width:600px;margin:40px auto;background:#f7f9fc;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+    <div style="background:linear-gradient(135deg,#15173f 0%,#3e5161 100%);padding:32px 40px;">
+      <div style="color:#91bfeb;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;">Coverage360 · Alert Digest</div>
+      <h1 style="color:#fff;margin:0;font-size:22px;font-weight:700;">
+        {len(changes)} policy change{'s' if len(changes) != 1 else ''} in the last {days} day{'s' if days != 1 else ''}
+      </h1>
+    </div>
+    <div style="padding:28px 40px;">
+      <p style="color:#4a5f78;font-size:14px;line-height:1.6;margin:0 0 24px;">Hi {name}, here's your coverage intelligence update:</p>
+      {alerts_html}
+      <div style="border-top:1px solid #e2e8f0;margin-top:28px;padding-top:20px;">
+        <p style="color:#8a9db5;font-size:12px;line-height:1.6;margin:0;">
+          Sent by Coverage360 · Medical Benefit Drug Coverage Intelligence<br>
+          To unsubscribe, update your Organization Profile in the app.
+        </p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+"""
 
 
 def _parse_json_field(value, fallback=None):

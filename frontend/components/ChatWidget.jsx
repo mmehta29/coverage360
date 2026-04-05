@@ -172,7 +172,6 @@ export default function ChatWidget({ drugName }) {
       <div className="ai-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span className="ai-title">AI Assistant</span>
-          <span className="grounded-badge">Grounded</span>
           {speaking && <span className="voice-badge">Speaking…</span>}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -326,14 +325,72 @@ export default function ChatWidget({ drugName }) {
 
 function MarkdownText({ text }) {
   if (!text) return null
+  const lines = text.split('\n')
+
+  // Group table lines together
+  const blocks = []
+  let i = 0
+  while (i < lines.length) {
+    const line = lines[i]
+    if (/^\|.+\|/.test(line.trim())) {
+      const tableLines = []
+      while (i < lines.length && /^\|.+\|/.test(lines[i].trim())) {
+        tableLines.push(lines[i])
+        i++
+      }
+      blocks.push({ type: 'table', lines: tableLines })
+    } else {
+      blocks.push({ type: 'line', content: line })
+      i++
+    }
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      {text.split('\n').map((line, i) => {
-        if (!line.trim()) return <div key={i} style={{ height: 4 }} />
+      {blocks.map((block, bi) => {
+        if (block.type === 'table') {
+          const rows = block.lines.filter(l => !/^[\|\s\-:]+$/.test(l.trim()))
+          return (
+            <div key={bi} style={{ overflowX: 'auto', margin: '6px 0' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11.5 }}>
+                <tbody>
+                  {rows.map((row, ri) => {
+                    const cells = row.split('|').filter((_, ci) => ci > 0 && ci < row.split('|').length - 1)
+                    const isHeader = ri === 0
+                    return (
+                      <tr key={ri} style={{ background: isHeader ? 'var(--bg)' : ri % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.02)' }}>
+                        {cells.map((cell, ci) => (
+                          <td key={ci} style={{
+                            padding: '5px 8px', border: '1px solid var(--line)',
+                            fontWeight: isHeader ? 700 : 400, color: isHeader ? 'var(--ink)' : 'var(--ink2)',
+                            whiteSpace: 'nowrap',
+                          }}>
+                            {renderInline(cell.trim())}
+                          </td>
+                        ))}
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )
+        }
+
+        const line = block.content
+        if (!line.trim()) return <div key={bi} style={{ height: 4 }} />
+        if (/^---+$/.test(line.trim())) return <hr key={bi} style={{ border: 'none', borderTop: '1px solid var(--line)', margin: '6px 0' }} />
+
+        const h3 = line.match(/^###\s+(.+)/)
+        if (h3) return <div key={bi} style={{ fontSize: 12, fontWeight: 700, color: 'var(--navy)', marginTop: 8, marginBottom: 2 }}>{renderInline(h3[1])}</div>
+
+        const h2 = line.match(/^##\s+(.+)/)
+        if (h2) return <div key={bi} style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)', marginTop: 8, marginBottom: 2 }}>{renderInline(h2[1])}</div>
+
         const isBullet = /^[\-\*•]\s/.test(line.trim())
-        const content  = renderInline(isBullet ? line.trim().replace(/^[\-\*•]\s/, '') : line)
+        const content = renderInline(isBullet ? line.trim().replace(/^[\-\*•]\s/, '') : line)
         return (
-          <div key={i} style={{ display: 'flex', gap: isBullet ? 6 : 0, alignItems: 'flex-start' }}>
+          <div key={bi} style={{ display: 'flex', gap: isBullet ? 6 : 0, alignItems: 'flex-start' }}>
             {isBullet && <span style={{ color: 'var(--slate)', fontWeight: 700, flexShrink: 0, marginTop: 1 }}>·</span>}
             <span>{content}</span>
           </div>
@@ -344,9 +401,11 @@ function MarkdownText({ text }) {
 }
 
 function renderInline(text) {
-  return text.split(/(\*\*[^*]+\*\*)/).map((part, i) =>
-    part.startsWith('**') && part.endsWith('**')
-      ? <strong key={i} style={{ color: 'var(--ink)', fontWeight: 600 }}>{part.slice(2, -2)}</strong>
-      : part
-  )
+  return text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/).map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**'))
+      return <strong key={i} style={{ color: 'var(--ink)', fontWeight: 600 }}>{part.slice(2, -2)}</strong>
+    if (part.startsWith('*') && part.endsWith('*'))
+      return <em key={i}>{part.slice(1, -1)}</em>
+    return part
+  })
 }

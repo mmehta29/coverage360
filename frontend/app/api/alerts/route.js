@@ -28,9 +28,15 @@ export async function GET(request) {
 function adaptAlert(change, index) {
   const payer = change.policies?.payers?.short_name || change.policies?.payers?.name || 'Unknown payer'
   const policyTitle = change.policies?.policy_title || 'Policy update'
-  const summary = typeof change.diff_summary === 'string'
-    ? change.diff_summary
-    : (change.diff_summary?.diff_summary || 'Meaningful policy change detected.')
+
+  // diff_summary may be a JSON string, a parsed object, or a plain string
+  let diffObj = change.diff_summary
+  if (typeof diffObj === 'string') {
+    try { diffObj = JSON.parse(diffObj) } catch { /* leave as string */ }
+  }
+  const summary = typeof diffObj === 'object' && diffObj !== null
+    ? (diffObj.diff_summary || 'Meaningful policy change detected.')
+    : (diffObj || 'Meaningful policy change detected.')
   const lower = summary.toLowerCase()
 
   let type = 'warning'

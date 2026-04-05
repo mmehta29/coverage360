@@ -1,9 +1,22 @@
 'use client'
-import { useState } from 'react'
-import { Search, FileText, TrendingUp, ArrowRight } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Search, ArrowRight } from 'lucide-react'
+
+const FULL_TEXT = 'What drug do you want to search?'
 
 export default function WelcomePage({ onGetStarted }) {
   const [searchQuery, setSearchQuery] = useState('')
+  const [displayed, setDisplayed] = useState('')
+
+  useEffect(() => {
+    let i = 0
+    const interval = setInterval(() => {
+      i++
+      setDisplayed(FULL_TEXT.slice(0, i))
+      if (i === FULL_TEXT.length) clearInterval(interval)
+    }, 45)
+    return () => clearInterval(interval)
+  }, [])
 
   const handleSearch = () => {
     if (searchQuery.trim()) {
@@ -12,45 +25,27 @@ export default function WelcomePage({ onGetStarted }) {
   }
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center p-8 relative overflow-hidden">
+    <div className="min-h-screen bg-white flex items-center justify-center p-8 pt-16 relative overflow-hidden">
       {/* Gradient glow effects - subtle */}
       <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-[#91bfeb] rounded-full mix-blend-multiply filter blur-[150px] opacity-20" />
       <div className="absolute bottom-0 left-1/4 w-[500px] h-[500px] bg-[#3e5161] rounded-full mix-blend-multiply filter blur-[150px] opacity-10" />
 
-      {/* Sidebar Icons */}
-      <div className="fixed left-8 top-1/2 -translate-y-1/2 flex flex-col gap-4 z-10">
-        <button className="w-12 h-12 rounded-2xl bg-[#f7f9fc] border border-[#e2e8f0] flex items-center justify-center hover:bg-[#91bfeb]/10 hover:border-[#91bfeb] transition-all shadow-sm">
-          <Search size={20} className="text-[#3e5161]" />
-        </button>
-        <button className="w-12 h-12 rounded-2xl bg-[#f7f9fc] border border-[#e2e8f0] flex items-center justify-center hover:bg-[#91bfeb]/10 hover:border-[#91bfeb] transition-all shadow-sm">
-          <FileText size={20} className="text-[#3e5161]" />
-        </button>
-        <button className="w-12 h-12 rounded-2xl bg-[#f7f9fc] border border-[#e2e8f0] flex items-center justify-center hover:bg-[#91bfeb]/10 hover:border-[#91bfeb] transition-all shadow-sm">
-          <TrendingUp size={20} className="text-[#3e5161]" />
-        </button>
-      </div>
-
-      {/* Main Content Grid */}
-      <div className="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-16 items-center relative z-10">
+{/* Main Content Grid */}
+      <div className="max-w-7xl ml-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-16 items-center relative z-10 animate-fade-in">
         
         {/* Left Side - Content */}
         <div className="space-y-8">
-          {/* Logo */}
-          <div className="mb-4">
-            <div className="inline-flex items-baseline gap-0">
-              <span className="font-serif text-2xl font-medium text-[#15173f]">Coverage</span>
-              <span className="font-serif text-2xl font-normal text-[#91bfeb]">360</span>
-            </div>
-          </div>
-
           {/* Headline */}
           <div>
             <h1 className="text-6xl font-bold text-[#15173f] leading-tight mb-4">
-              What drug do you
-              <br />
-              <span className="text-[#91bfeb]">
-                want to search?
-              </span>
+              {displayed.slice(0, Math.min(displayed.length, 17))}
+              {displayed.length > 17 && (
+                <>
+                  <br />
+                  <span className="text-[#3e5161]">{displayed.slice(17)}</span>
+                </>
+              )}
+              {displayed.length < FULL_TEXT.length && <span className="animate-pulse">|</span>}
             </h1>
             <p className="text-lg text-[#3e5161] font-light">
               Search across 847 policies from 3 major payers.
@@ -111,7 +106,7 @@ export default function WelcomePage({ onGetStarted }) {
               <div className="text-xs text-[#3e5161]">Major Payers</div>
             </div>
             <div className="space-y-1">
-              <div className="text-3xl font-bold text-[#91bfeb]">AI</div>
+              <div className="text-3xl font-bold text-[#3e5161]">AI</div>
               <div className="text-xs text-[#3e5161]">Powered Search</div>
             </div>
           </div>
@@ -123,7 +118,7 @@ export default function WelcomePage({ onGetStarted }) {
           <img
             src="/nurse.png"
             alt="Medical Professional"
-            className="relative z-10"
+            className="relative z-10 animate-fade-in-slow"
             style={{
               width: '140%',
               height: 'auto',
@@ -133,19 +128,17 @@ export default function WelcomePage({ onGetStarted }) {
         </div>
       </div>
 
-      {/* Top Right Actions */}
-      <div className="fixed top-8 right-8 flex items-center gap-3 z-10">
-        <button className="px-4 py-2 rounded-full bg-white border border-[#e2e8f0] text-[#3e5161] text-xs font-medium hover:bg-[#f7f9fc] hover:border-[#91bfeb] transition-all">
-          Sign In
-        </button>
-        <button className="px-4 py-2 rounded-full bg-[#3e5161] text-white text-xs font-medium hover:shadow-lg hover:shadow-[#3e5161]/30 transition-all">
-          Get Started
-        </button>
-      </div>
-
-      {/* Bottom Info */}
-      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 text-xs text-[#3e5161]/60 font-light z-10">
-        Powered by Claude AI · HIPAA-aligned · Updated Apr 2026
+      {/* Top Bar */}
+      <div className="fixed top-0 left-0 right-0 flex items-center justify-between z-10" style={{height:'64px',padding:'0 28px'}}>
+        <img src="/logo.png" alt="Coverage360" style={{height:'120px',width:'auto'}} />
+        <div className="flex items-center gap-3">
+          <button className="px-4 py-2 rounded-full bg-white border border-[#e2e8f0] text-[#3e5161] text-xs font-medium hover:bg-[#f7f9fc] hover:border-[#91bfeb] transition-all">
+            Sign In
+          </button>
+          <button className="px-4 py-2 rounded-full bg-[#3e5161] text-white text-xs font-medium hover:shadow-lg hover:shadow-[#3e5161]/30 transition-all">
+            Get Started
+          </button>
+        </div>
       </div>
     </div>
   )

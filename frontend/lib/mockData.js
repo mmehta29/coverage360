@@ -1,5 +1,110 @@
 // Swap these out for real API calls when the backend is ready.
 
+// ─── Heatmap ────────────────────────────────────────────────────────────────
+// status: covered | restricted | denied | unknown
+export const HEATMAP_DRUGS = [
+  'Rituximab', 'Adalimumab', 'Bevacizumab', 'Pembrolizumab',
+  'Nivolumab', 'Trastuzumab', 'Infliximab', 'Ustekinumab',
+]
+
+export const HEATMAP_PAYERS = ['UnitedHealth', 'Cigna', 'Priority Health']
+
+// [drug][payer] → { status, note }
+export const HEATMAP_DATA = {
+  Rituximab:     { UnitedHealth: { status: 'covered',    note: 'PA required. CD20+ confirmed.' },
+                   Cigna:        { status: 'restricted',  note: 'Step therapy: biosimilar ≥12 wks.' },
+                   'Priority Health': { status: 'covered', note: 'PA required. Oncology only.' } },
+  Adalimumab:    { UnitedHealth: { status: 'restricted',  note: 'Biosimilar step therapy required.' },
+                   Cigna:        { status: 'covered',    note: 'PA required. Specialist confirmation.' },
+                   'Priority Health': { status: 'restricted', note: 'Biosimilar trial ≥8 wks.' } },
+  Bevacizumab:   { UnitedHealth: { status: 'covered',    note: 'PA required. NCCN guideline.' },
+                   Cigna:        { status: 'covered',    note: 'PA required. FDA-approved indication.' },
+                   'Priority Health': { status: 'covered', note: 'NCCN Category 1 or 2A.' } },
+  Pembrolizumab: { UnitedHealth: { status: 'covered',    note: 'PA required. PD-L1 testing required.' },
+                   Cigna:        { status: 'restricted',  note: 'Step therapy. Prior platinum required.' },
+                   'Priority Health': { status: 'denied',  note: 'Not covered. Off-label only.' } },
+  Nivolumab:     { UnitedHealth: { status: 'covered',    note: 'PA required. Oncology indication.' },
+                   Cigna:        { status: 'covered',    note: 'NCCN Category 1. No step therapy.' },
+                   'Priority Health': { status: 'restricted', note: 'Preferred agent preferred first.' } },
+  Trastuzumab:   { UnitedHealth: { status: 'covered',    note: 'PA required. HER2+ confirmed.' },
+                   Cigna:        { status: 'covered',    note: 'HER2+ pathology required.' },
+                   'Priority Health': { status: 'covered', note: 'PA required. Biosimilar preferred.' } },
+  Infliximab:    { UnitedHealth: { status: 'restricted',  note: 'Biosimilar step required. PA required.' },
+                   Cigna:        { status: 'restricted',  note: 'Remicade: step therapy applies.' },
+                   'Priority Health': { status: 'restricted', note: 'Biosimilar preferred. Step ≥12 wks.' } },
+  Ustekinumab:   { UnitedHealth: { status: 'covered',    note: 'PA required. TNF failure documented.' },
+                   Cigna:        { status: 'denied',     note: 'Non-covered. Formulary exclusion.' },
+                   'Priority Health': { status: 'restricted', note: 'PA required. Two TNF failures.' } },
+}
+
+// ─── Alerts ─────────────────────────────────────────────────────────────────
+// type: positive | warning | negative
+export const ALERTS_DATA = [
+  {
+    id: 1,
+    type: 'negative',
+    drug: 'Rituximab',
+    payer: 'Cigna',
+    summary: 'Step therapy added: biosimilar trial ≥12 weeks now required before brand.',
+    date: 'Feb 1, 2026',
+    policyRef: 'Cigna CPB 0656',
+  },
+  {
+    id: 2,
+    type: 'positive',
+    drug: 'Bevacizumab',
+    payer: 'UnitedHealth',
+    summary: 'Prior auth criteria simplified. Pathology report now sufficient; oncologist letter no longer required.',
+    date: 'Jan 15, 2026',
+    policyRef: 'UHC MP-02.117',
+  },
+  {
+    id: 3,
+    type: 'positive',
+    drug: 'Pembrolizumab',
+    payer: 'Priority Health',
+    summary: 'Coverage expanded to include first-line non-small cell lung cancer (NSCLC) per updated NCCN guidelines.',
+    date: 'Mar 1, 2026',
+    policyRef: 'PH Oncology Drug List 2026-Q1',
+  },
+  {
+    id: 4,
+    type: 'warning',
+    drug: 'Rituximab',
+    payer: 'UnitedHealth',
+    summary: 'Site-of-care restriction updated: ambulatory infusion centers now required. Hospital outpatient requires exception.',
+    date: 'Jan 1, 2026',
+    policyRef: 'UHC MP-02.093',
+  },
+  {
+    id: 5,
+    type: 'negative',
+    drug: 'Ustekinumab',
+    payer: 'Cigna',
+    summary: 'Removed from covered drug list. Formulary exclusion effective Q1 2026. Stelara and Tremfya both excluded.',
+    date: 'Jan 1, 2026',
+    policyRef: 'Cigna Drug List 2026',
+  },
+  {
+    id: 6,
+    type: 'warning',
+    drug: 'Infliximab',
+    payer: 'Priority Health',
+    summary: 'Step therapy duration extended from 8 to 12 weeks for all biosimilar trials before originator product.',
+    date: 'Mar 15, 2026',
+    policyRef: 'PH Rheum Policy 2026-03',
+  },
+  {
+    id: 7,
+    type: 'positive',
+    drug: 'Trastuzumab',
+    payer: 'UnitedHealth',
+    summary: 'Trastuzumab biosimilars (Kanjinti, Herzuma) promoted to preferred tier. Prior auth criteria unchanged.',
+    date: 'Feb 15, 2026',
+    policyRef: 'UHC MP-02.044',
+  },
+]
+
 export const DRUG_DB = {
   rituximab: {
     name: 'Rituximab',

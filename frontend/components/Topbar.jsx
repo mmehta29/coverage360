@@ -12,6 +12,7 @@ export default function Topbar({ onToggleSidebar }) {
       <div className="topbar-right">
         <button className="btn-ghost">Upload PDF</button>
         <button className="btn-solid">+ Add payer</button>
+        {user && <button className="btn-ghost" onClick={onLogout}>Log out</button>}
       </div>
     </div>
   )

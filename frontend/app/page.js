@@ -5,7 +5,10 @@ import Topbar from '@/components/Topbar'
 import Sidebar from '@/components/Sidebar'
 import SearchHero from '@/components/SearchHero'
 import CoverageTable from '@/components/CoverageTable'
-import ChatWidget from '@/components/ChatWidget'
+import CoverageHeatmap from '@/components/CoverageHeatmap'
+import AlertsPanel from '@/components/AlertsPanel'
+import CompareView from '@/components/CompareView'
+import OrganizationProfile from '@/components/OrganizationProfile'
 import TrustBar from '@/components/TrustBar'
 import { INDEX_STATS } from '@/lib/mockData'
 
@@ -17,8 +20,70 @@ export default function Home() {
   const [notFound, setNotFound] = useState(false)
   const [loading, setLoading] = useState(false)
 
-  async function handleSearch(q) {
-    const trimmed = q.trim()
+  useEffect(() => {
+    if (!user || nav !== 'heatmap' || heatmapData.drugs.length > 0 || heatmapLoading) return
+
+    setHeatmapLoading(true)
+    setHeatmapError('')
+    fetch('/api/coverage/heatmap')
+      .then(async response => {
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.error || 'Unable to load heatmap')
+        setHeatmapData(data)
+      })
+      .catch(error => setHeatmapError(error.message || 'Unable to load heatmap'))
+      .finally(() => setHeatmapLoading(false))
+  }, [user, nav, heatmapData.drugs.length, heatmapLoading])
+
+  useEffect(() => {
+    if (!user || nav !== 'alerts' || alertsLoading) return
+
+    const cached = readAlertsCache()
+    const cacheIsFresh = cached && Date.now() - cached.savedAt < ALERTS_CACHE_TTL_MS
+    if (cacheIsFresh) {
+      setAlertsData(cached.alerts)
+      setAlertsError('')
+      return
+    }
+
+    setAlertsLoading(true)
+    setAlertsError('')
+    fetch('/api/alerts')
+      .then(async response => {
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.error || 'Unable to load alerts')
+        const alerts = data.alerts || []
+        setAlertsData(alerts)
+        writeAlertsCache(alerts)
+      })
+      .catch(error => setAlertsError(error.message || 'Unable to load alerts'))
+      .finally(() => setAlertsLoading(false))
+  }, [user, nav, alertsLoading])
+
+  useEffect(() => {
+    const cached = readAlertsCache()
+    if (user && cached?.alerts?.length) {
+      setAlertsData(cached.alerts)
+    }
+  }, [user])
+
+  useEffect(() => {
+    if (!user || nav !== 'compare' || !result?.name) return
+
+    setCompareLoading(true)
+    setCompareError('')
+    fetch(`/api/coverage/compare?drug=${encodeURIComponent(result.name)}`)
+      .then(async response => {
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.error || 'Unable to load comparison')
+        setCompareData(data)
+      })
+      .catch(error => setCompareError(error.message || 'Unable to load comparison'))
+      .finally(() => setCompareLoading(false))
+  }, [user, nav, result?.name])
+
+  async function handleSearch(nextQuery) {
+    const trimmed = nextQuery.trim()
     if (!trimmed) return
     setQuery(trimmed)
     setNotFound(false)
@@ -26,7 +91,11 @@ export default function Home() {
     setShowWelcome(false) // Hide welcome page when searching
     try {
       const res = await fetch(`/api/search?q=${encodeURIComponent(trimmed)}`)
-      if (!res.ok) { setResult(null); setNotFound(true); return }
+      if (!res.ok) {
+        setResult(null)
+        setNotFound(true)
+        return
+      }
       setResult(await res.json())
     } finally {
       setLoading(false)
@@ -40,6 +109,31 @@ export default function Home() {
 
   // Main app interface
   const burdenStyle = result ? getBurdenStyle(result.burdenScore) : {}
+  const alertCount = alertsData.filter(alert => alert.type === 'negative').length
+
+  if (isLoading) {
+    return (
+      <div className="auth-shell">
+        <div className="auth-card">
+          <div className="auth-title">Loading Coverage360</div>
+          <div className="auth-sub">Checking your session...</div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return (
+      <div className="auth-shell">
+        <div className="auth-card">
+          <div className="auth-eyebrow">Coverage360</div>
+          <div className="auth-title">Log in to continue</div>
+          <div className="auth-sub">Use Auth0 Universal Login to access the coverage recommendation workspace.</div>
+          <a className="btn-solid auth-link" href="/auth/login">Log in with Auth0</a>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div style={{position:'relative',minHeight:'100vh',overflow:'hidden',background:'#faf8f5'}}>
@@ -54,18 +148,17 @@ export default function Home() {
       <div className="shell">
         <Sidebar alertCount={3} open={sidebarOpen} />
 
-        <div className="main">
-          <SearchHero
-            query={query}
-            onQueryChange={setQuery}
-            onSearch={handleSearch}
-            indexStats={INDEX_STATS}
-          />
-
-          <div className="content">
-            {loading && (
-              <div className="search-status">Searching…</div>
-            )}
+        <div className="center-col">
+          {nav === 'search' && (
+            <>
+              <SearchHero
+                query={query}
+                onQueryChange={setQuery}
+                onSearch={handleSearch}
+                indexStats={INDEX_STATS}
+              />
+              <div className="content">
+                {loading && <div className="search-status">Searching...</div>}
 
             {notFound && !loading && (
               <div className="search-status">
@@ -73,12 +166,12 @@ export default function Home() {
               </div>
             )}
 
-            {!result && !loading && !notFound && (
-              <div className="empty-state">
-                <div className="empty-title">Search for a drug to see coverage</div>
-                <div className="empty-hint">Try searching by brand name, generic name, or J-code.</div>
-              </div>
-            )}
+                {!result && !loading && !notFound && (
+                  <div className="empty-state">
+                    <div className="empty-title">Search for a drug to see coverage</div>
+                    <div className="empty-hint">Try a brand name, generic name, or J-code. Or ask the assistant on the right.</div>
+                  </div>
+                )}
 
             {result && !loading && (
               <>

@@ -2,7 +2,7 @@ const BACKEND_URL = process.env.BACKEND_URL
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url)
-  const days = searchParams.get('days') || '90'
+  const days = searchParams.get('days') || '1'
 
   if (!BACKEND_URL) {
     return Response.json({ days: Number(days), alerts: [], error: 'Backend not configured' }, { status: 503 })

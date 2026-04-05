@@ -8,7 +8,6 @@ import CoverageHeatmap from '@/components/CoverageHeatmap'
 import AlertsPanel from '@/components/AlertsPanel'
 import CompareView from '@/components/CompareView'
 import TrustBar from '@/components/TrustBar'
-import { PAYERS as FALLBACK_PAYERS, INDEX_STATS } from '@/lib/mockData'
 
 const ALERTS_CACHE_KEY = 'coverage360-alerts-cache-v1'
 const ALERTS_CACHE_TTL_MS = 24 * 60 * 60 * 1000
@@ -207,7 +206,7 @@ export default function Home() {
   const [result, setResult] = useState(null)
   const [notFound, setNotFound] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [payers, setPayers] = useState(FALLBACK_PAYERS)
+  const [payers, setPayers] = useState([])
   const [heatmapData, setHeatmapData] = useState({ drugs: [], payers: [], matrix: {} })
   const [heatmapLoading, setHeatmapLoading] = useState(false)
   const [heatmapError, setHeatmapError] = useState('')
@@ -326,7 +325,7 @@ export default function Home() {
                 query={query}
                 onQueryChange={setQuery}
                 onSearch={handleSearch}
-                indexStats={INDEX_STATS}
+                indexStats={null}
               />
               <div className="content">
                 {loading && <div className="search-status">Searching...</div>}

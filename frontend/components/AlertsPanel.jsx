@@ -8,7 +8,7 @@ const TYPE_LABEL = {
   negative: 'Coverage reduced',
 }
 
-export default function AlertsPanel({ alerts = [], days = 90, loading = false, error = '' }) {
+export default function AlertsPanel({ alerts = [], days = 1, loading = false, error = '' }) {
   const [openAlertId, setOpenAlertId] = useState('')
   const [diffCache, setDiffCache] = useState({})
   const [diffLoadingId, setDiffLoadingId] = useState('')

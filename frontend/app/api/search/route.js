@@ -1,5 +1,3 @@
-import { lookupDrug } from '@/lib/mockData'
-
 const BACKEND_URL = process.env.BACKEND_URL
 
 export async function GET(request) {
@@ -7,11 +5,8 @@ export async function GET(request) {
   const query = (searchParams.get('q') ?? '').trim()
   if (!query) return Response.json({ error: 'Query required' }, { status: 400 })
 
-  // Fallback to mock when no backend is configured (local dev without backend running)
   if (!BACKEND_URL) {
-    const drug = lookupDrug(query)
-    if (!drug) return Response.json({ error: 'Not found' }, { status: 404 })
-    return Response.json(drug)
+    return Response.json({ error: 'Backend not configured' }, { status: 503 })
   }
 
   let res

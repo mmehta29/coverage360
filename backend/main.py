@@ -320,7 +320,7 @@ def get_policy_diff(policy_id: str):
 
 
 @app.get("/changes/recent")
-def recent_changes(days: int = 90):
+def recent_changes(days: int = 1):
     """All meaningful policy changes in the last N days."""
     cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
     result = (

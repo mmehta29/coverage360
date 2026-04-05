@@ -1,6 +1,5 @@
 'use client'
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
 import Topbar from '@/components/Topbar'
 import Sidebar from '@/components/Sidebar'
 import AlertsPanel from '@/components/AlertsPanel'
@@ -16,13 +15,7 @@ export default function AlertsPage() {
   const [filter, setFilter] = useState('meaningful') // 'all' | 'meaningful' | 'cosmetic'
   const [email, setEmail] = useState('')
   const [emailSent, setEmailSent] = useState(false)
-  const [payers, setPayers] = useState([])
-
-  useEffect(() => {
-    fetch('/api/payers').then(r => r.ok ? r.json() : [])
-      .then(data => setPayers((data || []).map(p => p.short_name || p.name)))
-      .catch(() => {})
-  }, [])
+  const [sidebarOpen, setSidebarOpen] = useState(true)
 
   useEffect(() => {
     loadAlerts()
@@ -63,9 +56,9 @@ export default function AlertsPage() {
 
   return (
     <div>
-      <Topbar payers={payers} alertCount={meaningfulCount} />
+      <Topbar onToggleSidebar={() => setSidebarOpen(o => !o)} />
       <div className="shell">
-        <Sidebar />
+        <Sidebar open={sidebarOpen} active="alerts" onNav={() => {}} />
         <div className="main">
           <div style={{ padding: '28px 36px', borderBottom: '1px solid var(--line)', background: 'var(--white)' }}>
 

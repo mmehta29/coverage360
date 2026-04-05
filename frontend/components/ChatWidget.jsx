@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect } from 'react'
 
 const SUGGESTIONS = [
   'Which payers cover this drug?',
@@ -10,20 +10,20 @@ const SUGGESTIONS = [
 ]
 
 export default function ChatWidget({ drugName }) {
-  const [open, setOpen]         = useState(true)
+  const [open,     setOpen]     = useState(true)
   const [messages, setMessages] = useState([])
-  const [input, setInput]       = useState('')
-  const [loading, setLoading]   = useState(false)
+  const [input,    setInput]    = useState('')
+  const [loading,  setLoading]  = useState(false)
 
   // Voice state
-  const [listening, setListening]   = useState(false)   // mic is recording
-  const [speaking, setSpeaking]     = useState(false)   // TTS is playing
+  const [listening,  setListening]  = useState(false)
+  const [speaking,   setSpeaking]   = useState(false)
   const [voiceError, setVoiceError] = useState('')
 
-  const bottomRef     = useRef(null)
-  const prevDrug      = useRef(drugName)
+  const bottomRef      = useRef(null)
+  const prevDrug       = useRef(drugName)
   const recognitionRef = useRef(null)
-  const audioRef      = useRef(null)
+  const audioRef       = useRef(null)
 
   // Clear conversation when drug changes
   useEffect(() => {
@@ -38,12 +38,8 @@ export default function ChatWidget({ drugName }) {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
 
-  // Clean up on unmount
   useEffect(() => {
-    return () => {
-      stopListening()
-      stopSpeaking()
-    }
+    return () => { stopListening(); stopSpeaking() }
   }, [])
 
   // ── TTS ───────────────────────────────────────────────────────────────────
@@ -72,8 +68,8 @@ export default function ChatWidget({ drugName }) {
         const e = await res.json()
         throw new Error(e.error || 'TTS failed')
       }
-      const blob = await res.blob()
-      const url  = URL.createObjectURL(blob)
+      const blob  = await res.blob()
+      const url   = URL.createObjectURL(blob)
       const audio = new Audio(url)
       audioRef.current = audio
       audio.onended = () => { setSpeaking(false); URL.revokeObjectURL(url) }
@@ -81,9 +77,13 @@ export default function ChatWidget({ drugName }) {
       await audio.play()
     } catch (e) {
       setSpeaking(false)
-      // Only show error if it's not a missing key (silent fail is fine in demo)
       if (!e.message.includes('not configured')) setVoiceError(e.message)
     }
+  }
+
+  function speakLastAnswer() {
+    const last = [...messages].reverse().find(m => m.role === 'assistant')
+    if (last) speakText(last.text)
   }
 
   // ── STT (Web Speech API) ──────────────────────────────────────────────────
@@ -96,27 +96,21 @@ export default function ChatWidget({ drugName }) {
     setVoiceError('')
     stopSpeaking()
 
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
-    const rec = new SpeechRecognition()
+    const SR  = window.SpeechRecognition || window.webkitSpeechRecognition
+    const rec = new SR()
     rec.lang = 'en-US'
-    rec.interimResults = false
+    rec.interimResults  = false
     rec.maxAlternatives = 1
 
     rec.onstart  = () => setListening(true)
     rec.onend    = () => setListening(false)
     rec.onerror  = (e) => {
       setListening(false)
-      if (e.error !== 'no-speech' && e.error !== 'aborted') {
-        setVoiceError(`Mic error: ${e.error}`)
-      }
+      if (e.error !== 'no-speech' && e.error !== 'aborted') setVoiceError(`Mic error: ${e.error}`)
     }
     rec.onresult = (e) => {
       const transcript = e.results[0]?.[0]?.transcript?.trim()
-      if (transcript) {
-        setInput(transcript)
-        // Auto-send after a short delay so user can see what was transcribed
-        setTimeout(() => send(transcript), 300)
-      }
+      if (transcript) { setInput(transcript); setTimeout(() => send(transcript), 300) }
     }
 
     recognitionRef.current = rec
@@ -129,10 +123,7 @@ export default function ChatWidget({ drugName }) {
     setListening(false)
   }
 
-  function toggleMic() {
-    if (listening) stopListening()
-    else startListening()
-  }
+  function toggleMic() { if (listening) stopListening(); else startListening() }
 
   // ── Chat ──────────────────────────────────────────────────────────────────
 
@@ -144,23 +135,21 @@ export default function ChatWidget({ drugName }) {
     setMessages(prev => [...prev, { role: 'user', text: q }])
     setLoading(true)
     try {
-      const res = await fetch('/api/chat', {
+      const res  = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question: q, drug: drugName }),
       })
-      const data = await res.json()
+      const data       = await res.json()
       const answerText = data.answer || 'No answer returned.'
       setMessages(prev => [...prev, {
         role: 'assistant',
         text: answerText,
-        sources: Array.isArray(data.sources) ? data.sources : data.sources ? [data.sources] : [],
+        sources:     Array.isArray(data.sources) ? data.sources : data.sources ? [data.sources] : [],
         contextRows: data.context_rows_used ?? 0,
       }])
-      // Auto-speak the answer if voice was used to ask
-      if (listening === false && recognitionRef.current === null && text !== undefined) {
-        speakText(answerText)
-      }
+      // Auto-speak when question came from voice
+      if (text !== undefined) speakText(answerText)
     } catch {
       setMessages(prev => [...prev, {
         role: 'assistant',
@@ -172,13 +161,9 @@ export default function ChatWidget({ drugName }) {
     }
   }
 
-  // Speak the last assistant message on demand
-  function speakLastAnswer() {
-    const last = [...messages].reverse().find(m => m.role === 'assistant')
-    if (last) speakText(last.text)
-  }
-
   const isEmpty = messages.length === 0 && !loading
+
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <div className="ai-panel" style={{ height: open ? '630px' : 'auto', overflow: 'hidden', transition: 'height 0.3s ease' }}>
@@ -191,7 +176,6 @@ export default function ChatWidget({ drugName }) {
           {speaking && <span className="voice-badge">Speaking…</span>}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          {/* Stop speaking button */}
           {speaking && (
             <button onClick={stopSpeaking} title="Stop speaking"
               style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--restricted)', display: 'flex', alignItems: 'center' }}>
@@ -200,7 +184,6 @@ export default function ChatWidget({ drugName }) {
               </svg>
             </button>
           )}
-          {/* Speak last answer */}
           {!speaking && messages.some(m => m.role === 'assistant') && (
             <button onClick={speakLastAnswer} title="Read last answer aloud"
               style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--ink3)', display: 'flex', alignItems: 'center' }}>
@@ -277,7 +260,6 @@ export default function ChatWidget({ drugName }) {
                           )}
                         </div>
                       )}
-                      {/* Per-message listen button */}
                       <button onClick={() => speakText(m.text)} title="Read aloud"
                         style={{ marginTop: 6, background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: 4, color: 'var(--ink3)', fontSize: 11 }}>
                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -302,7 +284,6 @@ export default function ChatWidget({ drugName }) {
             <div ref={bottomRef} />
           </div>
 
-          {/* Voice error */}
           {voiceError && (
             <div style={{ padding: '4px 14px', fontSize: 11.5, color: 'var(--denied)', background: 'var(--denied-bg)', borderTop: '1px solid var(--denied-br)' }}>
               {voiceError}
@@ -315,39 +296,24 @@ export default function ChatWidget({ drugName }) {
               className="ai-textarea"
               value={input}
               onChange={e => setInput(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() }
-              }}
-              placeholder={
-                listening ? 'Listening…' :
-                drugName ? `Ask about ${drugName}…` : 'Search for a drug first…'
-              }
+              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
+              placeholder={listening ? 'Listening…' : drugName ? `Ask about ${drugName}…` : 'Search for a drug first…'}
               disabled={!drugName || listening}
               style={{ flex: 1 }}
             />
-
-            {/* Mic button */}
             {voiceSupported && (
-              <button
-                onClick={toggleMic}
-                disabled={!drugName || loading}
+              <button onClick={toggleMic} disabled={!drugName || loading}
                 title={listening ? 'Stop recording' : 'Ask by voice'}
-                className={`ai-mic-btn${listening ? ' listening' : ''}`}
-              >
+                className={`ai-mic-btn${listening ? ' listening' : ''}`}>
                 {listening
-                  ? /* stop icon */
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                      <rect x="6" y="6" width="12" height="12" rx="2"/>
-                    </svg>
-                  : /* mic icon */
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  ? <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+                  : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                       <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/>
                       <path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"/>
                     </svg>
                 }
               </button>
             )}
-
             <button className="ai-submit" onClick={() => send()} disabled={loading || !input.trim() || !drugName}>
               Ask
             </button>
@@ -360,13 +326,12 @@ export default function ChatWidget({ drugName }) {
 
 function MarkdownText({ text }) {
   if (!text) return null
-  const lines = text.split('\n')
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      {lines.map((line, i) => {
+      {text.split('\n').map((line, i) => {
         if (!line.trim()) return <div key={i} style={{ height: 4 }} />
         const isBullet = /^[\-\*•]\s/.test(line.trim())
-        const content = renderInline(isBullet ? line.trim().replace(/^[\-\*•]\s/, '') : line)
+        const content  = renderInline(isBullet ? line.trim().replace(/^[\-\*•]\s/, '') : line)
         return (
           <div key={i} style={{ display: 'flex', gap: isBullet ? 6 : 0, alignItems: 'flex-start' }}>
             {isBullet && <span style={{ color: 'var(--slate)', fontWeight: 700, flexShrink: 0, marginTop: 1 }}>·</span>}
@@ -379,11 +344,9 @@ function MarkdownText({ text }) {
 }
 
 function renderInline(text) {
-  const parts = text.split(/(\*\*[^*]+\*\*)/)
-  return parts.map((part, i) => {
-    if (part.startsWith('**') && part.endsWith('**')) {
-      return <strong key={i} style={{ color: 'var(--ink)', fontWeight: 600 }}>{part.slice(2, -2)}</strong>
-    }
-    return part
-  })
+  return text.split(/(\*\*[^*]+\*\*)/).map((part, i) =>
+    part.startsWith('**') && part.endsWith('**')
+      ? <strong key={i} style={{ color: 'var(--ink)', fontWeight: 600 }}>{part.slice(2, -2)}</strong>
+      : part
+  )
 }

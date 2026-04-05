@@ -20,7 +20,7 @@ export default function WelcomePage({ onGetStarted }) {
 
   const handleSearch = () => {
     if (searchQuery.trim()) {
-      onGetStarted()
+      onGetStarted(searchQuery.trim())
     }
   }
 

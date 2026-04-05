@@ -7,9 +7,8 @@ import Topbar from '@/components/Topbar'
 import Sidebar from '@/components/Sidebar'
 import SearchHero from '@/components/SearchHero'
 import CoverageTable from '@/components/CoverageTable'
-import CoverageHeatmap from '@/components/CoverageHeatmap'
+import ComparePanel from '@/components/ComparePanel'
 import AlertsPanel from '@/components/AlertsPanel'
-import CompareView from '@/components/CompareView'
 import OrganizationProfile from '@/components/OrganizationProfile'
 import TrustBar from '@/components/TrustBar'
 import ChatWidget from '@/components/ChatWidget'
@@ -31,7 +30,7 @@ function writeAlertsCache(alerts) {
   if (typeof window === 'undefined') return
   try {
     window.localStorage.setItem('coverage360-alerts-cache', JSON.stringify({ alerts, savedAt: Date.now() }))
-  } catch {}
+  } catch { }
 }
 
 const DEV_USER = { name: 'Dev User', email: 'dev@local' }
@@ -60,17 +59,9 @@ function HomeInner() {
   const [notFound, setNotFound] = useState(false)
   const [loading, setLoading] = useState(false)
 
-  const [heatmapData, setHeatmapData] = useState({ drugs: [], payers: [], matrix: {} })
-  const [heatmapLoading, setHeatmapLoading] = useState(false)
-  const [heatmapError, setHeatmapError] = useState('')
-
   const [alertsData, setAlertsData] = useState([])
   const [alertsLoading, setAlertsLoading] = useState(false)
   const [alertsError, setAlertsError] = useState('')
-
-  const [compareData, setCompareData] = useState(null)
-  const [compareLoading, setCompareLoading] = useState(false)
-  const [compareError, setCompareError] = useState('')
 
   // Fetch live index stats once on load
   useEffect(() => {
@@ -87,23 +78,8 @@ function HomeInner() {
           })
         }
       })
-      .catch(() => {})
+      .catch(() => { })
   }, [])
-
-  useEffect(() => {
-    if (!user || nav !== 'heatmap' || heatmapData.drugs.length > 0 || heatmapLoading) return
-
-    setHeatmapLoading(true)
-    setHeatmapError('')
-    fetch('/api/coverage/heatmap')
-      .then(async response => {
-        const data = await response.json()
-        if (!response.ok) throw new Error(data.error || 'Unable to load heatmap')
-        setHeatmapData(data)
-      })
-      .catch(error => setHeatmapError(error.message || 'Unable to load heatmap'))
-      .finally(() => setHeatmapLoading(false))
-  }, [user, nav, heatmapData.drugs.length, heatmapLoading])
 
   useEffect(() => {
     if (!user || nav !== 'alerts' || alertsLoading) return
@@ -137,21 +113,6 @@ function HomeInner() {
     }
   }, [user])
 
-  useEffect(() => {
-    if (!user || nav !== 'compare' || !result?.name) return
-
-    setCompareLoading(true)
-    setCompareError('')
-    fetch(`/api/coverage/compare?drug=${encodeURIComponent(result.name)}`)
-      .then(async response => {
-        const data = await response.json()
-        if (!response.ok) throw new Error(data.error || 'Unable to load comparison')
-        setCompareData(data)
-      })
-      .catch(error => setCompareError(error.message || 'Unable to load comparison'))
-      .finally(() => setCompareLoading(false))
-  }, [user, nav, result?.name])
-
   async function handleSearch(nextQuery) {
     const trimmed = nextQuery.trim()
     if (!trimmed) return
@@ -173,7 +134,12 @@ function HomeInner() {
   }
 
   if (showWelcome) {
-    return <WelcomePage onGetStarted={() => setShowWelcome(false)} />
+    return <WelcomePage onGetStarted={(searchQuery) => {
+      setShowWelcome(false)
+      if (searchQuery) {
+        handleSearch(searchQuery)
+      }
+    }} />
   }
 
   if (isLoading) {
@@ -202,21 +168,22 @@ function HomeInner() {
 
   const burdenStyle = result ? getBurdenStyle(result.burdenScore) : {}
   const alertCount = alertsData.filter(alert => alert.type === 'negative').length
+  const isFullWidth = nav === 'compare' || nav === 'organization'
 
   return (
-    <div style={{position:'relative',minHeight:'100vh',overflow:'hidden',background:'#faf8f5'}}>
+    <div style={{ position: 'relative', minHeight: '100vh', overflow: 'hidden', background: '#faf8f5' }}>
       {/* Watercolor washes */}
-      <div style={{position:'fixed',top:'-80px',left:'-60px',width:'600px',height:'600px',borderRadius:'60% 40% 55% 45% / 50% 60% 40% 55%',background:'radial-gradient(ellipse, rgba(255,160,60,0.38) 0%, rgba(255,120,30,0.18) 50%, transparent 75%)',filter:'blur(40px)',mixBlendMode:'multiply',pointerEvents:'none',zIndex:0}} />
-      <div style={{position:'fixed',top:'10%',right:'-80px',width:'550px',height:'650px',borderRadius:'45% 55% 40% 60% / 60% 40% 55% 45%',background:'radial-gradient(ellipse, rgba(100,180,230,0.35) 0%, rgba(60,140,210,0.18) 50%, transparent 75%)',filter:'blur(50px)',mixBlendMode:'multiply',pointerEvents:'none',zIndex:0}} />
-      <div style={{position:'fixed',bottom:'-60px',left:'30%',width:'580px',height:'500px',borderRadius:'55% 45% 60% 40% / 45% 55% 40% 60%',background:'radial-gradient(ellipse, rgba(220,60,140,0.28) 0%, rgba(200,40,120,0.14) 50%, transparent 75%)',filter:'blur(45px)',mixBlendMode:'multiply',pointerEvents:'none',zIndex:0}} />
-      <div style={{position:'fixed',top:'40%',left:'20%',width:'400px',height:'400px',borderRadius:'50%',background:'radial-gradient(ellipse, rgba(255,200,80,0.2) 0%, transparent 70%)',filter:'blur(60px)',mixBlendMode:'multiply',pointerEvents:'none',zIndex:0}} />
-      <div style={{position:'fixed',bottom:'10%',right:'15%',width:'350px',height:'350px',borderRadius:'50%',background:'radial-gradient(ellipse, rgba(80,160,220,0.22) 0%, transparent 70%)',filter:'blur(55px)',mixBlendMode:'multiply',pointerEvents:'none',zIndex:0}} />
+      <div style={{ position: 'fixed', top: '-80px', left: '-60px', width: '600px', height: '600px', borderRadius: '60% 40% 55% 45% / 50% 60% 40% 55%', background: 'radial-gradient(ellipse, rgba(255,160,60,0.38) 0%, rgba(255,120,30,0.18) 50%, transparent 75%)', filter: 'blur(40px)', mixBlendMode: 'multiply', pointerEvents: 'none', zIndex: 0 }} />
+      <div style={{ position: 'fixed', top: '10%', right: '-80px', width: '550px', height: '650px', borderRadius: '45% 55% 40% 60% / 60% 40% 55% 45%', background: 'radial-gradient(ellipse, rgba(100,180,230,0.35) 0%, rgba(60,140,210,0.18) 50%, transparent 75%)', filter: 'blur(50px)', mixBlendMode: 'multiply', pointerEvents: 'none', zIndex: 0 }} />
+      <div style={{ position: 'fixed', bottom: '-60px', left: '30%', width: '580px', height: '500px', borderRadius: '55% 45% 60% 40% / 45% 55% 40% 60%', background: 'radial-gradient(ellipse, rgba(220,60,140,0.28) 0%, rgba(200,40,120,0.14) 50%, transparent 75%)', filter: 'blur(45px)', mixBlendMode: 'multiply', pointerEvents: 'none', zIndex: 0 }} />
+      <div style={{ position: 'fixed', top: '40%', left: '20%', width: '400px', height: '400px', borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(255,200,80,0.2) 0%, transparent 70%)', filter: 'blur(60px)', mixBlendMode: 'multiply', pointerEvents: 'none', zIndex: 0 }} />
+      <div style={{ position: 'fixed', bottom: '10%', right: '15%', width: '350px', height: '350px', borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(80,160,220,0.22) 0%, transparent 70%)', filter: 'blur(55px)', mixBlendMode: 'multiply', pointerEvents: 'none', zIndex: 0 }} />
       <Topbar onToggleSidebar={() => setSidebarOpen(o => !o)} user={user} onLogout={() => { window.location.href = '/auth/logout' }} />
 
       <div className="shell">
         <Sidebar alertCount={alertCount} open={sidebarOpen} active={nav} onNav={setNav} />
 
-        <div className="center-col">
+        <div className="center-col" style={isFullWidth ? { gridColumn: '2 / -1' } : {}}>
           {nav === 'search' && (
             <>
               <SearchHero
@@ -248,32 +215,23 @@ function HomeInner() {
                         <div className="drug-name">{result.name}</div>
                         <div className="drug-generic">{result.generic}</div>
                         <div className="drug-tags">
-                          {result.tags.map(t => <span key={t} className="dtag">{t}</span>)}
+                          {result.tags.map(tag => <span key={tag} className="dtag">{tag}</span>)}
+                          {result.drugClass && <span className="dtag">{result.drugClass}</span>}
                         </div>
                       </div>
-                      <div className="burden-badge" style={burdenStyle}>
-                        <div className="burden-num" style={{color: burdenStyle.color}}>{result.burdenScore}</div>
-                        <div className="burden-lbl" style={{color: burdenStyle.color}}>burden</div>
-                      </div>
+                      {result.burdenScore !== null && (
+                        <div className="burden-badge" style={burdenStyle}>
+                          <div className="burden-num" style={{ color: burdenStyle.color }}>{result.burdenScore}</div>
+                          <div className="burden-lbl" style={{ color: burdenStyle.color }}>burden</div>
+                        </div>
+                      )}
                     </div>
                     <CoverageTable rows={result.coverage} />
-                  <CategoryPosition drugName={result.name} />
+                    <CategoryPosition drugName={result.name} />
                   </>
                 )}
               </div>
             </>
-          )}
-
-          {nav === 'heatmap' && (
-            <div className="content">
-              <CoverageHeatmap
-                drugs={heatmapData.drugs}
-                payers={heatmapData.payers}
-                matrix={heatmapData.matrix}
-                loading={heatmapLoading}
-                error={heatmapError}
-              />
-            </div>
           )}
 
           {nav === 'alerts' && (
@@ -288,13 +246,7 @@ function HomeInner() {
 
           {nav === 'compare' && (
             <div className="content">
-              <CompareView
-                result={result}
-                comparisonData={compareData}
-                loading={compareLoading}
-                error={compareError}
-                onGoToSearch={() => setNav('search')}
-              />
+              <ComparePanel initialDrug={query} initialResult={result} />
             </div>
           )}
 
@@ -303,7 +255,7 @@ function HomeInner() {
           )}
         </div>
 
-        <ChatWidget drugName={result?.name} />
+        {!isFullWidth && <ChatWidget drugName={result?.name} />}
       </div>
       <TrustBar />
     </div>

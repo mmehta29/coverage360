@@ -1,3 +1,5 @@
+import AlertsBell from './AlertsBell'
+
 export default function Topbar({ payers = [] }) {
   return (
     <div className="topbar">
@@ -10,6 +12,7 @@ export default function Topbar({ payers = [] }) {
         {payers.map(p => (
           <span key={p} className="payer-pill">{p}</span>
         ))}
+        <AlertsBell />
         <button className="btn-ghost">Upload PDF</button>
         <button className="btn-solid">+ Add payer</button>
       </div>

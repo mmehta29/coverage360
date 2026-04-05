@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { UserProvider } from "@auth0/nextjs-auth0/client";
+import { Providers } from "./providers";
 // @ts-expect-error css side-effect import
 import "./globals.css";
 
@@ -16,7 +16,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full">
       <body className="min-h-full">
-        <UserProvider>{children}</UserProvider>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

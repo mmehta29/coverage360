@@ -24,7 +24,8 @@ PAYER_PATTERNS = [
     (r"Florida Blue", "Florida Blue", "Florida Blue", "commercial"),
     (r"Cigna", "Cigna", "Cigna", "commercial"),
     (r"Priority Health", "Priority Health", "Priority Health", "commercial"),
-    (r"EmblemHealth", "EmblemHealth", "EmblemHealth", "commercial"),
+    (r"EmblemHealth|Emblem Health", "EmblemHealth", "EmblemHealth", "commercial"),
+    (r"Prime Therapeutics", "EmblemHealth", "EmblemHealth", "commercial"),
     (r"Aetna", "Aetna", "Aetna", "commercial"),
     (r"Humana", "Humana", "Humana", "commercial"),
     (r"UPMC", "UPMC Health Plan", "UPMC", "commercial"),
@@ -79,9 +80,11 @@ def extract_text_from_file(file_path: str) -> tuple[str, str]:
 
 def detect_payer(text: str) -> tuple[str, Optional[str], Optional[str]]:
     """Returns (payer_name, short_name, payer_type)."""
-    for pattern, name, short, ptype in PAYER_PATTERNS:
-        if re.search(pattern, text[:3000], re.IGNORECASE):
-            return name, short, ptype
+    # Search first 10K chars, then full text as fallback
+    for search_window in [text[:10000], text]:
+        for pattern, name, short, ptype in PAYER_PATTERNS:
+            if re.search(pattern, search_window, re.IGNORECASE):
+                return name, short, ptype
     # Fallback: grab first capitalized phrase near "Health Plan" or "Insurance"
     m = re.search(r"([A-Z][A-Za-z\s]+(?:Health Plan|Insurance|Blue|Health Care))", text[:2000])
     return (m.group(1).strip() if m else "Unknown Payer"), None, None

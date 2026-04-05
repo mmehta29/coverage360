@@ -25,10 +25,13 @@ export default function WelcomePage({ onGetStarted }) {
   }
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center p-8 pt-16 relative overflow-hidden">
-      {/* Gradient glow effects - subtle */}
-      <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-[#91bfeb] rounded-full mix-blend-multiply filter blur-[150px] opacity-20" />
-      <div className="absolute bottom-0 left-1/4 w-[500px] h-[500px] bg-[#3e5161] rounded-full mix-blend-multiply filter blur-[150px] opacity-10" />
+    <div className="min-h-screen flex items-center justify-center p-8 pt-16 relative overflow-hidden" style={{background:'#faf8f5'}}>
+      {/* Watercolor washes */}
+      <div className="absolute" style={{top:'-80px',left:'-60px',width:'600px',height:'600px',borderRadius:'60% 40% 55% 45% / 50% 60% 40% 55%',background:'radial-gradient(ellipse, rgba(255,160,60,0.38) 0%, rgba(255,120,30,0.18) 50%, transparent 75%)',filter:'blur(40px)',mixBlendMode:'multiply'}} />
+      <div className="absolute" style={{top:'10%',right:'-80px',width:'550px',height:'650px',borderRadius:'45% 55% 40% 60% / 60% 40% 55% 45%',background:'radial-gradient(ellipse, rgba(100,180,230,0.35) 0%, rgba(60,140,210,0.18) 50%, transparent 75%)',filter:'blur(50px)',mixBlendMode:'multiply'}} />
+      <div className="absolute" style={{bottom:'-60px',left:'30%',width:'580px',height:'500px',borderRadius:'55% 45% 60% 40% / 45% 55% 40% 60%',background:'radial-gradient(ellipse, rgba(220,60,140,0.28) 0%, rgba(200,40,120,0.14) 50%, transparent 75%)',filter:'blur(45px)',mixBlendMode:'multiply'}} />
+      <div className="absolute" style={{top:'40%',left:'20%',width:'400px',height:'400px',borderRadius:'50%',background:'radial-gradient(ellipse, rgba(255,200,80,0.2) 0%, transparent 70%)',filter:'blur(60px)',mixBlendMode:'multiply'}} />
+      <div className="absolute" style={{bottom:'10%',right:'15%',width:'350px',height:'350px',borderRadius:'50%',background:'radial-gradient(ellipse, rgba(80,160,220,0.22) 0%, transparent 70%)',filter:'blur(55px)',mixBlendMode:'multiply'}} />
 
 {/* Main Content Grid */}
       <div className="max-w-7xl ml-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-16 items-center relative z-10 animate-fade-in">
@@ -71,7 +74,7 @@ export default function WelcomePage({ onGetStarted }) {
                   />
                   <button 
                     onClick={handleSearch}
-                    className="px-6 py-2.5 rounded-xl bg-[#3e5161] text-white font-medium hover:shadow-lg hover:shadow-[#3e5161]/30 transition-all flex items-center gap-2 group"
+                    className="px-6 py-2.5 rounded-full font-medium transition-all flex items-center gap-2 group" style={{background:'rgba(255,255,255,0.35)',backdropFilter:'blur(12px)',WebkitBackdropFilter:'blur(12px)',border:'1.5px solid rgba(255,255,255,0.6)',color:'#15173f',boxShadow:'0 4px 16px rgba(100,120,160,0.1),inset 0 1px 0 rgba(255,255,255,0.7)'}}
                   >
                     Search
                     <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
@@ -135,7 +138,7 @@ export default function WelcomePage({ onGetStarted }) {
           <button className="px-4 py-2 rounded-full bg-white border border-[#e2e8f0] text-[#3e5161] text-xs font-medium hover:bg-[#f7f9fc] hover:border-[#91bfeb] transition-all">
             Sign In
           </button>
-          <button className="px-4 py-2 rounded-full bg-[#3e5161] text-white text-xs font-medium hover:shadow-lg hover:shadow-[#3e5161]/30 transition-all">
+          <button className="px-4 py-2 rounded-full text-xs font-medium transition-all" style={{background:'rgba(255,255,255,0.35)',backdropFilter:'blur(12px)',WebkitBackdropFilter:'blur(12px)',border:'1.5px solid rgba(255,255,255,0.6)',color:'#15173f',boxShadow:'0 4px 16px rgba(100,120,160,0.1),inset 0 1px 0 rgba(255,255,255,0.7)'}}>
             Get Started
           </button>
         </div>

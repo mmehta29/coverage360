@@ -1,6 +1,11 @@
-export default function Topbar({ subtitle = 'Analyst Portal' }) {
+export default function Topbar({ onToggleSidebar }) {
   return (
     <div className="topbar">
+      <button onClick={onToggleSidebar} style={{background:'none',border:'none',cursor:'pointer',padding:'6px',marginRight:'8px',display:'flex',flexDirection:'column',gap:'4px'}}>
+        <span style={{display:'block',width:'18px',height:'2px',background:'var(--ink2)',borderRadius:'2px'}} />
+        <span style={{display:'block',width:'18px',height:'2px',background:'var(--ink2)',borderRadius:'2px'}} />
+        <span style={{display:'block',width:'18px',height:'2px',background:'var(--ink2)',borderRadius:'2px'}} />
+      </button>
       <div className="logo">
         <img src="/logo.png" alt="Coverage360" style={{height:'120px',width:'auto'}} />
       </div>

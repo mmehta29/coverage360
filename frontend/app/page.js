@@ -11,6 +11,7 @@ import { INDEX_STATS } from '@/lib/mockData'
 
 export default function Home() {
   const [showWelcome, setShowWelcome] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(true)
   const [query, setQuery] = useState('')
   const [result, setResult] = useState(null)
   const [notFound, setNotFound] = useState(false)
@@ -41,11 +42,17 @@ export default function Home() {
   const burdenStyle = result ? getBurdenStyle(result.burdenScore) : {}
 
   return (
-    <div>
-      <Topbar />
+    <div style={{position:'relative',minHeight:'100vh',overflow:'hidden',background:'#faf8f5'}}>
+      {/* Watercolor washes */}
+      <div style={{position:'fixed',top:'-80px',left:'-60px',width:'600px',height:'600px',borderRadius:'60% 40% 55% 45% / 50% 60% 40% 55%',background:'radial-gradient(ellipse, rgba(255,160,60,0.38) 0%, rgba(255,120,30,0.18) 50%, transparent 75%)',filter:'blur(40px)',mixBlendMode:'multiply',pointerEvents:'none',zIndex:0}} />
+      <div style={{position:'fixed',top:'10%',right:'-80px',width:'550px',height:'650px',borderRadius:'45% 55% 40% 60% / 60% 40% 55% 45%',background:'radial-gradient(ellipse, rgba(100,180,230,0.35) 0%, rgba(60,140,210,0.18) 50%, transparent 75%)',filter:'blur(50px)',mixBlendMode:'multiply',pointerEvents:'none',zIndex:0}} />
+      <div style={{position:'fixed',bottom:'-60px',left:'30%',width:'580px',height:'500px',borderRadius:'55% 45% 60% 40% / 45% 55% 40% 60%',background:'radial-gradient(ellipse, rgba(220,60,140,0.28) 0%, rgba(200,40,120,0.14) 50%, transparent 75%)',filter:'blur(45px)',mixBlendMode:'multiply',pointerEvents:'none',zIndex:0}} />
+      <div style={{position:'fixed',top:'40%',left:'20%',width:'400px',height:'400px',borderRadius:'50%',background:'radial-gradient(ellipse, rgba(255,200,80,0.2) 0%, transparent 70%)',filter:'blur(60px)',mixBlendMode:'multiply',pointerEvents:'none',zIndex:0}} />
+      <div style={{position:'fixed',bottom:'10%',right:'15%',width:'350px',height:'350px',borderRadius:'50%',background:'radial-gradient(ellipse, rgba(80,160,220,0.22) 0%, transparent 70%)',filter:'blur(55px)',mixBlendMode:'multiply',pointerEvents:'none',zIndex:0}} />
+      <Topbar onToggleSidebar={() => setSidebarOpen(o => !o)} />
 
       <div className="shell">
-        <Sidebar alertCount={3} />
+        <Sidebar alertCount={3} open={sidebarOpen} />
 
         <div className="main">
           <SearchHero

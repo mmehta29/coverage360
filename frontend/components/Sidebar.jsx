@@ -27,11 +27,11 @@ const EXPLORE = [
   },
 ]
 
-export default function Sidebar({ alertCount = 0 }) {
+export default function Sidebar({ alertCount = 0, open = true }) {
   const [active, setActive] = useState('search')
 
   return (
-    <aside className="sidebar">
+    <aside className="sidebar" style={{maxWidth: open ? '240px' : '0', overflow:'hidden', padding: open ? '' : '0', transition:'max-width 0.3s ease, padding 0.3s ease'}}>
       {NAV.map(item => (
         <button key={item.id} className={`sb-item${active === item.id ? ' on' : ''}`} onClick={() => setActive(item.id)}>
           {item.icon}

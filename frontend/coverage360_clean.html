@@ -4,1108 +4,195 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Coverage360 - Medical Benefit Drug Coverage Intelligence</title>
-    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700&family=Roboto:wght@300;400;500;700&family=Isolate&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
- 
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
         :root {
-            --color-white: #ffffff;
-            --color-slate: #3e5161;
-            --color-sky: #91bfeb;
-            --color-navy: #15173f;
-            --color-gray-50: #f8f9fa;
-            --color-gray-100: #e9ecef;
-            --color-gray-200: #dee2e6;
-            --color-gray-300: #ced4da;
-            --color-gray-400: #adb5bd;
-            --color-gray-600: #6c757d;
-            --color-gray-700: #495057;
-            --color-gray-800: #343a40;
-            
-            --color-success: #28a745;
-            --color-warning: #ffc107;
-            --color-danger: #dc3545;
-            --color-info: #17a2b8;
-            
-            --font-h1: 'Merriweather', serif;
-            --font-h2: 'Roboto', sans-serif;
-            --font-body: 'Isolate', sans-serif;
-            
-            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
-            --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
-            --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.15);
-            
-            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --slate: #3e5161;
+            --sky: #91bfeb;
+            --navy: #15173f;
+            --white: #ffffff;
+            --line: #dee2e6;
+            --ink2: #6c757d;
         }
- 
+
         body {
-            font-family: var(--font-body);
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-            color: var(--color-gray-800);
-            line-height: 1.6;
+            font-family: 'Roboto', sans-serif;
             min-height: 100vh;
+            background: #faf8f5;
+            overflow: hidden;
         }
- 
-        /* Header */
-        .header {
-            background: var(--color-white);
-            border-bottom: 2px solid var(--color-gray-200);
-            padding: 1rem 2rem;
-            box-shadow: var(--shadow-sm);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
- 
-        .header-content {
-            max-width: 1600px;
-            margin: 0 auto;
+
+        /* Watercolor washes */
+        .wc { position: fixed; pointer-events: none; z-index: 0; }
+        .wc-1 { top: -80px; left: -60px; width: 600px; height: 600px; border-radius: 60% 40% 55% 45% / 50% 60% 40% 55%; background: radial-gradient(ellipse, rgba(255,160,60,0.38) 0%, rgba(255,120,30,0.18) 50%, transparent 75%); filter: blur(40px); mix-blend-mode: multiply; }
+        .wc-2 { top: 10%; right: -80px; width: 550px; height: 650px; border-radius: 45% 55% 40% 60% / 60% 40% 55% 45%; background: radial-gradient(ellipse, rgba(100,180,230,0.35) 0%, rgba(60,140,210,0.18) 50%, transparent 75%); filter: blur(50px); mix-blend-mode: multiply; }
+        .wc-3 { bottom: -60px; left: 30%; width: 580px; height: 500px; border-radius: 55% 45% 60% 40% / 45% 55% 40% 60%; background: radial-gradient(ellipse, rgba(220,60,140,0.28) 0%, rgba(200,40,120,0.14) 50%, transparent 75%); filter: blur(45px); mix-blend-mode: multiply; }
+        .wc-4 { top: 40%; left: 20%; width: 400px; height: 400px; border-radius: 50%; background: radial-gradient(ellipse, rgba(255,200,80,0.2) 0%, transparent 70%); filter: blur(60px); mix-blend-mode: multiply; }
+        .wc-5 { bottom: 10%; right: 15%; width: 350px; height: 350px; border-radius: 50%; background: radial-gradient(ellipse, rgba(80,160,220,0.22) 0%, transparent 70%); filter: blur(55px); mix-blend-mode: multiply; }
+
+        /* Top bar */
+        .topbar {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: 64px;
+            padding: 0 28px;
             display: flex;
+            align-items: center;
             justify-content: space-between;
-            align-items: center;
-            gap: 2rem;
+            z-index: 10;
         }
- 
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
+
+        .topbar img { height: 48px; width: auto; }
+
+        .topbar-actions { display: flex; gap: 10px; }
+
+        .btn-ghost {
+            font-size: 12px; font-weight: 500; font-family: 'Roboto', sans-serif;
+            color: var(--slate); background: rgba(200,205,210,0.45);
+            border: 1.5px solid rgba(220,224,228,0.7);
+            border-radius: 999px; padding: 7px 16px; cursor: pointer;
+            -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+            transition: all 0.2s;
         }
- 
-        .logo h1 {
-            font-family: var(--font-h1);
-            font-size: 1.5rem;
-            color: var(--color-navy);
-            font-weight: 700;
+        .btn-ghost:hover { background: rgba(200,205,210,0.7); }
+
+        .btn-solid {
+            font-size: 12px; font-weight: 500; font-family: 'Roboto', sans-serif;
+            color: var(--navy); background: rgba(200,205,210,0.55);
+            border: 1.5px solid rgba(220,224,228,0.7);
+            border-radius: 999px; padding: 7px 16px; cursor: pointer;
+            -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+            box-shadow: 0 4px 16px rgba(100,120,160,0.1), inset 0 1px 0 rgba(255,255,255,0.6);
+            transition: all 0.2s;
         }
- 
-        .logo-subtitle {
-            font-size: 0.75rem;
-            color: var(--color-gray-600);
-            font-weight: 400;
-        }
- 
-        .payer-tabs {
-            display: flex;
-            gap: 0.5rem;
-        }
- 
-        .payer-tab {
-            padding: 0.5rem 1rem;
-            background: transparent;
-            border: 1px solid var(--color-gray-300);
-            border-radius: 6px;
-            font-size: 0.875rem;
-            font-weight: 500;
-            color: var(--color-gray-700);
-            cursor: pointer;
-            transition: var(--transition);
-        }
- 
-        .payer-tab:hover {
-            background: var(--color-gray-100);
-            border-color: var(--color-slate);
-        }
- 
-        .payer-tab.active {
-            background: var(--color-navy);
-            color: white;
-            border-color: var(--color-navy);
-        }
- 
-        .header-actions {
-            display: flex;
-            gap: 0.75rem;
-        }
- 
-        .btn {
-            padding: 0.625rem 1.25rem;
-            border-radius: 8px;
-            font-size: 0.875rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: var(--transition);
-            border: none;
-            font-family: var(--font-body);
-        }
- 
-        .btn-secondary {
-            background: var(--color-gray-100);
-            color: var(--color-gray-700);
-            border: 1px solid var(--color-gray-300);
-        }
- 
-        .btn-secondary:hover {
-            background: var(--color-gray-200);
-        }
- 
-        .btn-primary {
-            background: var(--color-slate);
-            color: white;
-        }
- 
-        .btn-primary:hover {
-            background: var(--color-navy);
-            transform: translateY(-1px);
-            box-shadow: var(--shadow-md);
-        }
- 
-        /* Main Layout */
-        .main-container {
-            max-width: 1600px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: 240px 1fr 380px;
-            gap: 1.5rem;
-            padding: 1.5rem 2rem;
-            min-height: calc(100vh - 80px);
-        }
- 
-        /* Sidebar */
-        .sidebar {
-            background: var(--color-white);
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: var(--shadow-md);
-            height: fit-content;
-            position: sticky;
-            top: 100px;
-        }
- 
-        .sidebar-section {
-            margin-bottom: 2rem;
-        }
- 
-        .sidebar-title {
-            font-size: 0.75rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--color-gray-600);
-            margin-bottom: 1rem;
-        }
- 
-        .nav-item {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 0.75rem 1rem;
-            border-radius: 8px;
-            font-size: 0.875rem;
-            color: var(--color-gray-700);
-            cursor: pointer;
-            transition: var(--transition);
-            margin-bottom: 0.5rem;
-        }
- 
-        .nav-item:hover {
-            background: var(--color-gray-100);
-            color: var(--color-navy);
-        }
- 
-        .nav-item.active {
-            background: linear-gradient(135deg, var(--color-sky) 0%, var(--color-slate) 100%);
-            color: white;
-        }
- 
-        .nav-icon {
-            width: 20px;
-            height: 20px;
-        }
- 
-        .alert-badge {
-            background: var(--color-danger);
-            color: white;
-            font-size: 0.75rem;
-            padding: 0.125rem 0.5rem;
-            border-radius: 12px;
-            margin-left: auto;
-        }
- 
-        /* Main Content */
-        .main-content {
-            background: var(--color-white);
-            border-radius: 12px;
-            padding: 2rem;
-            box-shadow: var(--shadow-md);
-        }
- 
-        .search-section {
-            margin-bottom: 2rem;
-        }
- 
-        .section-header {
-            font-size: 0.75rem;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--color-gray-600);
-            margin-bottom: 1rem;
-        }
- 
-        .search-bar {
+        .btn-solid:hover { background: rgba(200,205,210,0.75); }
+
+        /* Center content */
+        .center {
             position: relative;
-            margin-bottom: 1rem;
-        }
- 
-        .search-input {
-            width: 100%;
-            padding: 0.875rem 1rem 0.875rem 3rem;
-            border: 2px solid var(--color-gray-300);
-            border-radius: 10px;
-            font-size: 1rem;
-            font-family: var(--font-body);
-            transition: var(--transition);
-        }
- 
-        .search-input:focus {
-            outline: none;
-            border-color: var(--color-slate);
-            box-shadow: 0 0 0 3px rgba(62, 81, 97, 0.1);
-        }
- 
-        .search-icon {
-            position: absolute;
-            left: 1rem;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--color-gray-400);
-        }
- 
-        .recent-searches {
-            display: flex;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-        }
- 
-        .search-chip {
-            padding: 0.375rem 0.75rem;
-            background: var(--color-gray-100);
-            border-radius: 20px;
-            font-size: 0.813rem;
-            color: var(--color-slate);
-            cursor: pointer;
-            transition: var(--transition);
-        }
- 
-        .search-chip:hover {
-            background: var(--color-sky);
-            color: white;
-        }
- 
-        .meta-info {
-            font-size: 0.813rem;
-            color: var(--color-gray-600);
-            margin-bottom: 1.5rem;
-        }
- 
-        /* Drug Info Card */
-        .drug-info {
-            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
-            border: 2px solid var(--color-gray-200);
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-        }
- 
-        .drug-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 1rem;
-        }
- 
-        .drug-title {
-            flex: 1;
-        }
- 
-        .drug-name {
-            font-family: var(--font-h2);
-            font-size: 1.75rem;
-            font-weight: 700;
-            color: var(--color-navy);
-            margin-bottom: 0.25rem;
-        }
- 
-        .drug-aliases {
-            font-size: 0.875rem;
-            color: var(--color-gray-600);
-            font-style: italic;
-        }
- 
-        .burden-score {
-            text-align: center;
-            padding: 1rem;
-        }
- 
-        .burden-circle {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+            z-index: 1;
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            box-shadow: var(--shadow-lg);
-            margin: 0 auto 0.5rem;
-        }
- 
-        .burden-number {
-            font-size: 1.75rem;
-            font-weight: 700;
-            color: white;
-            line-height: 1;
-        }
- 
-        .burden-label {
-            font-size: 0.75rem;
-            color: white;
-            font-weight: 500;
-        }
- 
-        .drug-tags {
-            display: flex;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-        }
- 
-        .drug-tag {
-            padding: 0.375rem 0.75rem;
-            background: white;
-            border: 1px solid var(--color-gray-300);
-            border-radius: 6px;
-            font-size: 0.813rem;
-            color: var(--color-gray-700);
-            font-weight: 500;
-        }
- 
-        /* Coverage Table */
-        .coverage-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-        }
- 
-        .coverage-title {
-            font-family: var(--font-h2);
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: var(--color-navy);
-        }
- 
-        .export-btn {
-            padding: 0.5rem 1rem;
-            background: transparent;
-            border: 1px solid var(--color-slate);
-            color: var(--color-slate);
-            border-radius: 6px;
-            font-size: 0.813rem;
-            cursor: pointer;
-            transition: var(--transition);
-        }
- 
-        .export-btn:hover {
-            background: var(--color-slate);
-            color: white;
-        }
- 
-        .coverage-table {
-            width: 100%;
-            border-collapse: separate;
-            border-spacing: 0;
-        }
- 
-        .coverage-table thead th {
-            background: var(--color-gray-100);
-            padding: 0.75rem 1rem;
-            text-align: left;
-            font-size: 0.75rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--color-gray-700);
-            border-bottom: 2px solid var(--color-gray-300);
-        }
- 
-        .coverage-table thead th:first-child {
-            border-top-left-radius: 8px;
-        }
- 
-        .coverage-table thead th:last-child {
-            border-top-right-radius: 8px;
-        }
- 
-        .coverage-table tbody tr {
-            transition: var(--transition);
-        }
- 
-        .coverage-table tbody tr:hover {
-            background: var(--color-gray-50);
-        }
- 
-        .coverage-table tbody td {
-            padding: 1.25rem 1rem;
-            border-bottom: 1px solid var(--color-gray-200);
-        }
- 
-        .payer-name {
-            font-weight: 600;
-            color: var(--color-navy);
-            font-size: 0.938rem;
-        }
- 
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.375rem;
-            padding: 0.375rem 0.75rem;
-            border-radius: 20px;
-            font-size: 0.813rem;
-            font-weight: 500;
-        }
- 
-        .status-badge.covered {
-            background: #d4edda;
-            color: #155724;
-        }
- 
-        .status-badge.covered::before {
-            content: "●";
-            color: #28a745;
-        }
- 
-        .status-badge.restricted {
-            background: #fff3cd;
-            color: #856404;
-        }
- 
-        .status-badge.restricted::before {
-            content: "●";
-            color: #ffc107;
-        }
- 
-        .criteria-text {
-            font-size: 0.875rem;
-            color: var(--color-gray-700);
-            line-height: 1.5;
-        }
- 
-        .effective-date {
-            font-size: 0.875rem;
-            color: var(--color-gray-600);
-        }
- 
-        #drugInfo,
-        #coverageSection {
-            display: none;
+            gap: 12px;
+            padding-bottom: 48px;
         }
 
-        /* AI Assistant Panel */
-        .ai-panel {
-            background: var(--color-white);
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: var(--shadow-md);
-            height: 630px;
-            position: sticky;
-            top: 100px;
-            display: flex;
-            flex-direction: column;
-        }
- 
-        .ai-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-            padding-bottom: 1rem;
-            border-bottom: 2px solid var(--color-gray-200);
-        }
- 
-        .ai-title {
-            font-family: var(--font-h2);
-            font-size: 1.125rem;
-            font-weight: 700;
-            color: var(--color-navy);
-        }
- 
-        .grounded-badge {
-            font-size: 0.688rem;
-            color: var(--color-slate);
-            background: var(--color-sky);
-            padding: 0.25rem 0.625rem;
-            border-radius: 12px;
-            font-weight: 500;
-        }
- 
-        .chat-container {
-            flex: 1;
-            overflow-y: auto;
-            margin-bottom: 1rem;
-            padding-right: 0.5rem;
-        }
- 
-        .chat-message {
-            margin-bottom: 1.5rem;
-            animation: fadeIn 0.3s ease-in;
-        }
- 
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
- 
-        .message-question {
-            background: var(--color-gray-100);
-            padding: 0.875rem 1rem;
-            border-radius: 12px;
-            font-size: 0.875rem;
-            color: var(--color-gray-800);
-            margin-bottom: 0.75rem;
-            font-style: italic;
-        }
- 
-        .message-answer {
-            font-size: 0.875rem;
-            color: var(--color-gray-700);
-            line-height: 1.6;
-        }
- 
-        .highlighted-payer {
-            color: var(--color-slate);
-            font-weight: 600;
-            cursor: pointer;
-            transition: var(--transition);
-        }
- 
-        .highlighted-payer:hover {
-            color: var(--color-navy);
-            text-decoration: underline;
-        }
- 
-        .message-sources {
-            margin-top: 0.75rem;
-            padding-top: 0.75rem;
-            border-top: 1px solid var(--color-gray-200);
-        }
- 
-        .sources-label {
-            font-size: 0.75rem;
-            color: var(--color-gray-600);
-            margin-bottom: 0.5rem;
-            font-weight: 500;
-        }
- 
-        .source-links {
-            display: flex;
-            flex-direction: column;
-            gap: 0.375rem;
-        }
- 
-        .source-link {
-            font-size: 0.75rem;
-            color: var(--color-slate);
-            text-decoration: none;
-            transition: var(--transition);
-        }
- 
-        .source-link:hover {
-            color: var(--color-navy);
-            text-decoration: underline;
-        }
- 
-        .chat-input-container {
-            border-top: 2px solid var(--color-gray-200);
-            padding-top: 1rem;
-        }
- 
-        .chat-input-wrapper {
-            position: relative;
-        }
- 
-        .chat-input {
+        .center img.logo { height: 200px; width: auto; }
+
+        /* Search bar */
+        .search-wrap {
             width: 100%;
-            padding: 0.875rem 3rem 0.875rem 1rem;
-            border: 2px solid var(--color-gray-300);
-            border-radius: 10px;
-            font-size: 0.875rem;
-            font-family: var(--font-body);
-            resize: none;
-            transition: var(--transition);
+            max-width: 580px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
         }
- 
-        .chat-input:focus {
-            outline: none;
-            border-color: var(--color-slate);
-            box-shadow: 0 0 0 3px rgba(62, 81, 97, 0.1);
+
+        .search-bar {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            background: rgba(200,205,210,0.45);
+            -webkit-backdrop-filter: blur(16px);
+            backdrop-filter: blur(16px);
+            border: 1.5px solid rgba(220,224,228,0.7);
+            border-radius: 999px;
+            padding: 0 8px 0 20px;
+            box-shadow: 0 4px 24px rgba(100,120,160,0.1), inset 0 1px 0 rgba(255,255,255,0.6);
+            transition: all 0.2s;
         }
- 
-        .chat-submit {
-            position: absolute;
-            right: 0.5rem;
-            top: 50%;
-            transform: translateY(-50%);
-            background: var(--color-slate);
-            color: white;
+        .search-bar:focus-within {
+            background: rgba(200,205,210,0.65);
+            box-shadow: 0 6px 28px rgba(100,120,160,0.16), inset 0 1px 0 rgba(255,255,255,0.7);
+        }
+
+        .search-bar svg { flex-shrink: 0; color: var(--slate); }
+
+        .search-bar input {
+            flex: 1;
             border: none;
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
+            background: transparent;
+            outline: none;
+            font-size: 15px;
+            font-family: 'Roboto', sans-serif;
+            color: var(--navy);
+            padding: 14px 12px;
+        }
+        .search-bar input::placeholder { color: rgba(62,81,97,0.45); }
+
+        .search-bar button {
+            flex-shrink: 0;
+            background: rgba(255,255,255,0.5);
+            border: 1.5px solid rgba(220,224,228,0.7);
+            border-radius: 999px;
+            padding: 8px 20px;
+            font-size: 13px;
+            font-weight: 500;
+            font-family: 'Roboto', sans-serif;
+            color: var(--navy);
             cursor: pointer;
-            font-size: 0.813rem;
-            font-weight: 600;
-            transition: var(--transition);
+            transition: all 0.2s;
         }
- 
-        .chat-submit:hover {
-            background: var(--color-navy);
+        .search-bar button:hover { background: rgba(255,255,255,0.75); }
+
+        /* Quick suggestions */
+        .suggestions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center; }
+        .suggestions span { font-size: 11px; color: var(--ink2); }
+        .suggestions button {
+            font-size: 12px; padding: 4px 12px; border-radius: 999px;
+            background: rgba(200,205,210,0.4); border: 1.5px solid rgba(220,224,228,0.6);
+            color: var(--slate); cursor: pointer; font-family: 'Roboto', sans-serif;
+            -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+            transition: all 0.2s;
         }
- 
-        /* Scrollbar Styling */
-        .chat-container::-webkit-scrollbar {
-            width: 6px;
-        }
- 
-        .chat-container::-webkit-scrollbar-track {
-            background: var(--color-gray-100);
-            border-radius: 3px;
-        }
- 
-        .chat-container::-webkit-scrollbar-thumb {
-            background: var(--color-gray-400);
-            border-radius: 3px;
-        }
- 
-        .chat-container::-webkit-scrollbar-thumb:hover {
-            background: var(--color-slate);
-        }
- 
-        /* Loading Animation */
-        .loading-dots {
-            display: inline-flex;
-            gap: 4px;
-        }
- 
-        .loading-dots span {
-            width: 6px;
-            height: 6px;
-            background: var(--color-slate);
-            border-radius: 50%;
-            animation: bounce 1.4s infinite ease-in-out both;
-        }
- 
-        .loading-dots span:nth-child(1) {
-            animation-delay: -0.32s;
-        }
- 
-        .loading-dots span:nth-child(2) {
-            animation-delay: -0.16s;
-        }
- 
-        @keyframes bounce {
-            0%, 80%, 100% {
-                transform: scale(0);
-            }
-            40% {
-                transform: scale(1);
-            }
-        }
- 
-        /* Responsive Design */
-        @media (max-width: 1400px) {
-            .main-container {
-                grid-template-columns: 220px 1fr 340px;
-            }
-        }
- 
-        @media (max-width: 1200px) {
-            .main-container {
-                grid-template-columns: 1fr 340px;
-            }
-            
-            .sidebar {
-                display: none;
-            }
-        }
- 
-        @media (max-width: 900px) {
-            .main-container {
-                grid-template-columns: 1fr;
-            }
-            
-            .ai-panel {
-                position: relative;
-                max-height: none;
-            }
-            
-            .payer-tabs {
-                display: none;
-            }
-        }
+        .suggestions button:hover { background: rgba(200,205,210,0.7); }
     </style>
 </head>
 <body>
 
-    <!-- Welcome Page -->
-    <div id="welcomePage">
-        <style>
-            #welcomePage {
-                min-height: 100vh;
-                background: white;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                padding: 2rem;
-                position: relative;
-                overflow: hidden;
-            }
-            #welcomePage .glow1 {
-                position: absolute; top: 0; right: 25%;
-                width: 600px; height: 600px;
-                background: #91bfeb; border-radius: 50%;
-                filter: blur(150px); opacity: 0.15; pointer-events: none;
-            }
-            #welcomePage .glow2 {
-                position: absolute; bottom: 0; left: 25%;
-                width: 500px; height: 500px;
-                background: #3e5161; border-radius: 50%;
-                filter: blur(150px); opacity: 0.08; pointer-events: none;
-            }
-            #welcomePage .w-sidebar {
-                position: fixed; left: 2rem; top: 50%; transform: translateY(-50%);
-                display: flex; flex-direction: column; gap: 1rem; z-index: 10;
-            }
-            #welcomePage .w-sidebar button {
-                width: 48px; height: 48px; border-radius: 16px;
-                background: #f7f9fc; border: 1px solid #e2e8f0;
-                display: flex; align-items: center; justify-content: center;
-                cursor: pointer; transition: all 0.2s;
-                color: #3e5161;
-            }
-            #welcomePage .w-sidebar button:hover {
-                background: rgba(145,191,235,0.1); border-color: #91bfeb;
-            }
-            #welcomePage .w-grid {
-                max-width: 1100px; width: 100%;
-                display: grid; grid-template-columns: 1fr 1fr;
-                gap: 4rem; align-items: center; position: relative; z-index: 10;
-                margin-left: 30px;
-            }
-            #welcomePage .w-logo-main { font-size: 1.5rem; font-weight: 500; color: #15173f; }
-            #welcomePage .w-logo-360 { font-size: 1.5rem; font-weight: 400; color: #91bfeb; }
-            #welcomePage .w-logo-sub { font-size: 0.75rem; color: #3e5161; font-weight: 300; letter-spacing: 0.05em; margin-top: 4px; }
-            #welcomePage h1 {
-                font-size: clamp(2.5rem, 5vw, 3.5rem);
-                font-weight: 700; color: #15173f; line-height: 1.15; margin: 1.5rem 0 1rem;
-            }
-            #welcomePage h1 span {
-                background: linear-gradient(to right, #91bfeb, #3e5161);
-                -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            }
-            #welcomePage .w-sub { font-size: 1.05rem; color: #3e5161; font-weight: 300; line-height: 1.6; }
-            #welcomePage .w-search-wrap {
-                margin-top: 2rem;
-                background: white; border: 2px solid #e2e8f0;
-                border-radius: 16px; padding: 6px;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-                transition: border-color 0.2s;
-            }
-            #welcomePage .w-search-wrap:focus-within { border-color: #91bfeb; }
-            #welcomePage .w-search-inner {
-                display: flex; align-items: center; gap: 0.75rem; padding: 0.625rem 1rem;
-            }
-            #welcomePage .w-search-inner input {
-                flex: 1; border: none; outline: none;
-                font-size: 1.05rem; color: #15173f; background: transparent;
-                font-family: inherit;
-            }
-            #welcomePage .w-search-inner input::placeholder { color: rgba(62,81,97,0.4); }
-            #welcomePage .w-search-btn {
-                padding: 0.625rem 1.5rem; border-radius: 10px;
-                background: linear-gradient(to right, #91bfeb, #3e5161);
-                color: white; font-weight: 500; border: none; cursor: pointer;
-                font-size: 0.95rem; transition: box-shadow 0.2s;
-            }
-            #welcomePage .w-search-btn:hover { box-shadow: 0 4px 16px rgba(145,191,235,0.4); }
-            #welcomePage .w-stats {
-                display: grid; grid-template-columns: repeat(3, 1fr);
-                gap: 1.5rem; margin-top: 2rem; padding-top: 1.5rem;
-                border-top: 1px solid #f0f4f8;
-            }
-            #welcomePage .w-stat-num { font-size: 2rem; font-weight: 700; color: #15173f; }
-            #welcomePage .w-stat-num.blue { color: #91bfeb; }
-            #welcomePage .w-stat-lbl { font-size: 0.75rem; color: #3e5161; margin-top: 2px; }
-            #welcomePage .w-top-actions {
-                position: fixed; top: 2rem; right: 2rem;
-                display: flex; gap: 0.75rem; z-index: 10;
-            }
-            #welcomePage .w-top-actions button {
-                padding: 0.5rem 1.25rem; border-radius: 999px;
-                font-size: 0.75rem; font-weight: 500; cursor: pointer;
-                font-family: inherit; transition: all 0.2s;
-            }
-            #welcomePage .btn-signin {
-                background: white; border: 1px solid #e2e8f0; color: #3e5161;
-            }
-            #welcomePage .btn-signin:hover { background: #f7f9fc; border-color: #91bfeb; }
-            #welcomePage .btn-getstarted {
-                background: linear-gradient(to right, #91bfeb, #3e5161);
-                color: white; border: none;
-            }
-            #welcomePage .btn-getstarted:hover { box-shadow: 0 4px 16px rgba(145,191,235,0.4); }
-            #welcomePage .w-footer {
-                position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%);
-                font-size: 0.75rem; color: rgba(62,81,97,0.5); font-weight: 300; z-index: 10;
-                white-space: nowrap;
-            }
-            @media (max-width: 768px) {
-                #welcomePage .w-grid { grid-template-columns: 1fr; gap: 2rem; }
-                #welcomePage .w-sidebar { display: none; }
-                #welcomePage .w-right { display: none; }
-            }
-        </style>
+    <!-- Watercolor background -->
+    <div class="wc wc-1"></div>
+    <div class="wc wc-2"></div>
+    <div class="wc wc-3"></div>
+    <div class="wc wc-4"></div>
+    <div class="wc wc-5"></div>
 
-        <div class="glow1"></div>
-        <div class="glow2"></div>
-
-        <div class="w-sidebar">
-            <button title="Search">
-                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-            </button>
-            <button title="Policies">
-                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-            </button>
-            <button title="Intelligence">
-                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
-            </button>
+    <!-- Top bar -->
+    <div class="topbar">
+        <img src="/frontend/public/logo.png" alt="Coverage360" />
+        <div class="topbar-actions">
+            <button class="btn-ghost">Sign In</button>
+            <button class="btn-solid">Get Started</button>
         </div>
-
-        <div class="w-grid">
-            <div>
-                <div>
-                    <span class="w-logo-main">Coverage</span><span class="w-logo-360">360</span>
-                    <div class="w-logo-sub">Analyst Portal</div>
-                </div>
-                <h1>What drug do you<br><span>want to search?</span></h1>
-                <p class="w-sub">Search across indexed policies from major payers.<br>Get instant coverage insights powered by AI.</p>
-
-                <div class="w-search-wrap">
-                    <div class="w-search-inner">
-                        <svg width="20" height="20" fill="none" stroke="#3e5161" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                        <input id="welcomeSearchInput" type="text" placeholder="Drug name, generic name, or J-code..." />
-                        <button class="w-search-btn" onclick="enterApp()">Search →</button>
-                    </div>
-                </div>
-
-            </div>
-
-            <div class="w-right" style="display:flex;align-items:center;justify-content:flex-end;margin: left 1px;">
-                <img src="public/nurse.png" alt="Medical Professional" style="width:550px;height:auto;filter:drop-shadow(0 20px 40px rgba(62,81,97,0.15));" />
-            </div>
-        </div>
-
-        <div class="w-top-actions">
-            <button class="btn-signin">Sign In</button>
-            <button class="btn-getstarted" onclick="enterApp()">Get Started</button>
-        </div>
-
-        <!-- <div class="w-footer">Powered by Claude AI · HIPAA-aligned</div> -->
     </div>
 
-    <!-- Main App (hidden until welcome is dismissed) -->
-    <div id="mainApp" style="display:none">
+    <!-- Center content -->
+    <div class="center">
+        <img class="logo" src="/frontend/public/logo.png" alt="Coverage360" />
 
-    <!-- Header -->
-    <header class="header">
-        <div class="header-content">
-            <div class="logo">
-                <div>
-                    <h1>Coverage360</h1>
-                </div>
+        <div class="search-wrap">
+            <div class="search-bar">
+                <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+                    <circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5l3 3" stroke-linecap="round"/>
+                </svg>
+                <input type="text" placeholder="Drug name, generic name, or J-code…" />
+                <button>Search</button>
             </div>
-            
-            
-            <div class="header-actions">
-                <button class="btn btn-secondary">Upload PDF</button>
-                <button class="btn btn-primary">+ Add payer</button>
+
+            <div class="suggestions">
+                <span>Try:</span>
+                <button>Rituximab</button>
+                <button>Adalimumab</button>
+                <button>Bevacizumab</button>
             </div>
         </div>
-    </header>
- 
-    <!-- Main Container -->
-    <div class="main-container">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-section">
-                <div class="nav-item active">
-                    <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                    </svg>
-                    Search
-                </div>
-                <div class="nav-item">
-                    <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
-                    </svg>
-                    Intelligence
-                </div>
-            </div>
-            
-            <div class="sidebar-section">
-                <div class="sidebar-title">Explore</div>
-                <div class="nav-item">
-                    <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v2a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h4a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM14 13a1 1 0 011-1h4a1 1 0 011 1v6a1 1 0 01-1 1h-4a1 1 0 01-1-1v-6z"/>
-                    </svg>
-                    Heatmap
-                </div>
-                <div class="nav-item">
-                    <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                    </svg>
-                    Compare
-                </div>
-                <div class="nav-item">
-                    <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                    </svg>
-                    Policy diff
-                </div>
-            </div>
-            
-        </aside>
- 
-        <!-- Main Content -->
-        <main class="main-content">
-            <!-- Search Section -->
-            <div class="search-section">
-                <div class="section-header">Medical Benefit Drug Coverage</div>
-                
-                <div class="search-bar">
-                    <svg class="search-icon" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                    </svg>
-                    <input type="text" class="search-input" placeholder="Search for a drug...">
-                </div>
-                
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                    <div>
-                        <span style="font-size: 0.813rem; color: var(--color-gray-600); margin-right: 0.5rem;">Recent:</span>
-                        <span style="font-size: 0.813rem; color: var(--color-gray-400); font-style: italic;">No search history yet</span>
-                    </div>
-                </div>
-                
-                <div class="meta-info">847 policies indexed · 3 payers · Updated Apr 4, 2026</div>
-            </div>
- 
-            <!-- Drug Info -->
-            <div class="drug-info" id="drugInfo">
-                <div class="drug-header">
-                    <div class="drug-title">
-                        <h2 class="drug-name">Rituximab</h2>
-                        <div class="drug-aliases">rituximab-abbs · Truxima · Ruxience</div>
-                    </div>
-                    <div class="burden-score">
-                        <div class="burden-circle">
-                            <div class="burden-number">62</div>
-                            <div class="burden-label">burden</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="drug-tags">
-                    <span class="drug-tag">J9312</span>
-                    <span class="drug-tag">CD20 monoclonal Ab</span>
-                    <span class="drug-tag">Oncology / Rheumatology</span>
-                    <span class="drug-tag">Biologic</span>
-                </div>
-            </div>
- 
-            <!-- Coverage Table -->
-            <div id="coverageSection">
-                <div class="coverage-header">
-                    <h3 class="coverage-title">Coverage across payers</h3>
-                    <button class="export-btn">Export CSV →</button>
-                </div>
-                
-                <table class="coverage-table">
-                    <thead>
-                        <tr>
-                            <th>PAYER</th>
-                            <th>STATUS</th>
-                            <th>CRITERIA SUMMARY</th>
-                            <th>EFFECTIVE</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><div class="payer-name">UnitedHealth</div></td>
-                            <td><span class="status-badge covered">Covered</span></td>
-                            <td><div class="criteria-text">PA required. CD20+ confirmed. Prior anthracycline required. No step therapy.</div></td>
-                            <td><div class="effective-date">Jan 2026</div></td>
-                        </tr>
-                        <tr>
-                            <td><div class="payer-name">Cigna</div></td>
-                            <td><span class="status-badge restricted">Restricted</span></td>
-                            <td><div class="criteria-text">Step therapy. Biosimilar trial ≥12 wks required before brand. PA required.</div></td>
-                            <td><div class="effective-date">Feb 2026</div></td>
-                        </tr>
-                        <tr>
-                            <td><div class="payer-name">Priority Health</div></td>
-                            <td><span class="status-badge covered">Covered</span></td>
-                            <td><div class="criteria-text">PA required. Oncology only. Infusion site restriction — ambulatory preferred.</div></td>
-                            <td><div class="effective-date">Jan 2026</div></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </main>
- 
-        <!-- AI Assistant Panel -->
-        <aside class="ai-panel">
-            <div class="ai-header">
-                <h3 class="ai-title">AI Chatbot</h3>
-                <span class="grounded-badge">Grounded in source policies</span>
-            </div>
-            
-            <div class="chat-container" id="chatContainer">
-            </div>
-            
-            <div class="chat-input-container">
-                <div class="chat-input-wrapper">
-                    <textarea 
-                        class="chat-input" 
-                        id="chatInput"
-                        placeholder="Ask about any drug, payer, or policy change..."
-                    ></textarea>
-                    <button class="chat-submit" id="chatSubmit">Ask</button>
-                </div>
-            </div>
-        </aside>
     </div>
-    </div> <!-- end #mainApp -->
 
-    <script>
-        function enterApp() {
-            document.getElementById('welcomePage').style.display = 'none';
-            document.getElementById('mainApp').style.display = 'block';
-        }
-
-        document.getElementById('welcomeSearchInput').addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' && this.value.trim()) enterApp();
-        });
-    </script>
 </body>
 </html>

@@ -4,6 +4,10 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700&family=Roboto:wght@300;400;500;700&family=DM+Mono:wght@400&display=swap');
 
+@keyframes fadeIn{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
+.animate-fade-in{animation:fadeIn 1.4s ease-out both;}
+.animate-fade-in-slow{animation:fadeIn 2.4s ease-out both;}
+
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{
   --navy:#15173f;

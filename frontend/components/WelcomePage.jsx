@@ -45,15 +45,14 @@ export default function WelcomePage({ onGetStarted }) {
               {displayed.length > 17 && (
                 <>
                   <br />
-                  <span className="text-[#3e5161]">{displayed.slice(17)}</span>
+                  <span className="text-[#15173f]">{displayed.slice(17, Math.min(displayed.length, 24))}</span>
+                  <span className="text-[#91bfeb]">{displayed.slice(24)}</span>
                 </>
               )}
               {displayed.length < FULL_TEXT.length && <span className="animate-pulse">|</span>}
             </h1>
-            <p className="text-lg text-[#3e5161] font-light">
-              Search across 847 policies from 3 major payers.
-              <br />
-              Get instant coverage insights powered by AI.
+            <p className="text-sm text-[#3e5161] font-light">
+              Search across 847 policies from 3 major payers. Get instant coverage insights powered by AI.
             </p>
           </div>
 
@@ -132,8 +131,7 @@ export default function WelcomePage({ onGetStarted }) {
       </div>
 
       {/* Top Bar */}
-      <div className="fixed top-0 left-0 right-0 flex items-center justify-between z-10" style={{height:'64px',padding:'0 28px'}}>
-        <img src="/logo.png" alt="Coverage360" style={{height:'120px',width:'auto'}} />
+      <div className="fixed top-0 left-0 right-0 flex items-center justify-end z-10" style={{height:'64px',padding:'0 28px'}}>
         <div className="flex items-center gap-3">
           <button className="px-4 py-2 rounded-full bg-white border border-[#e2e8f0] text-[#3e5161] text-xs font-medium hover:bg-[#f7f9fc] hover:border-[#91bfeb] transition-all">
             Sign In

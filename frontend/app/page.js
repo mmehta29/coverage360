@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import Topbar from '@/components/Topbar'
 import Sidebar from '@/components/Sidebar'
 import SearchHero from '@/components/SearchHero'
@@ -10,9 +10,6 @@ import CompareView from '@/components/CompareView'
 import TrustBar from '@/components/TrustBar'
 import { PAYERS as FALLBACK_PAYERS, INDEX_STATS } from '@/lib/mockData'
 
-// ── Inline persistent chat (not imported from ChatWidget to keep panel layout tight) ──
-import { useCallback } from 'react'
-
 const ALERTS_CACHE_KEY = 'coverage360-alerts-cache-v1'
 const ALERTS_CACHE_TTL_MS = 24 * 60 * 60 * 1000
 
@@ -22,6 +19,7 @@ function PersistentChat({ drugName }) {
   const [loading, setLoading] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
   const [transcribing, setTranscribing] = useState(false)
+  const [voiceError, setVoiceError] = useState('')
   const bottomRef = useRef(null)
   const recorderRef = useRef(null)
   const chunksRef = useRef([])
@@ -52,36 +50,62 @@ function PersistentChat({ drugName }) {
   }, [input, loading, drugName])
 
   const toggleVoice = useCallback(async () => {
-    // Stop an active recording
+    setVoiceError('')
+
     if (isRecording) {
       recorderRef.current?.stop()
       setIsRecording(false)
       return
     }
 
-    // Start recording
     try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setVoiceError('This browser does not support microphone access.')
+        return
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const recorder = new MediaRecorder(stream)
+      if (typeof MediaRecorder === 'undefined') {
+        stream.getTracks().forEach(track => track.stop())
+        setVoiceError('This browser does not support audio recording.')
+        return
+      }
+
+      const preferredMimeType = MediaRecorder.isTypeSupported?.('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : (MediaRecorder.isTypeSupported?.('audio/webm') ? 'audio/webm' : '')
+
+      const recorder = preferredMimeType
+        ? new MediaRecorder(stream, { mimeType: preferredMimeType })
+        : new MediaRecorder(stream)
+
       chunksRef.current = []
       recorderRef.current = recorder
 
-      recorder.ondataavailable = e => {
-        if (e.data.size > 0) chunksRef.current.push(e.data)
+      recorder.ondataavailable = event => {
+        if (event.data.size > 0) chunksRef.current.push(event.data)
       }
 
       recorder.onstop = async () => {
-        stream.getTracks().forEach(t => t.stop())
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
-        const fd = new FormData()
-        fd.append('audio', blob)
+        stream.getTracks().forEach(track => track.stop())
+        const blob = new Blob(chunksRef.current, { type: recorder.mimeType || 'audio/webm' })
+        const formData = new FormData()
+        formData.append('audio', blob)
         setTranscribing(true)
+
         try {
-          const res = await fetch('/api/voice', { method: 'POST', body: fd })
+          const res = await fetch('/api/voice', { method: 'POST', body: formData })
           const data = await res.json()
-          if (data.transcript) setInput(data.transcript)
-        } catch {
-          // Fail silently — user can still type
+          if (!res.ok) {
+            throw new Error(data.error || 'Transcription failed.')
+          }
+          if (data.transcript) {
+            setInput(data.transcript)
+          } else {
+            setVoiceError('No transcript was returned.')
+          }
+        } catch (error) {
+          setVoiceError(error?.message || 'Voice transcription failed.')
         } finally {
           setTranscribing(false)
         }
@@ -89,12 +113,16 @@ function PersistentChat({ drugName }) {
 
       recorder.start()
       setIsRecording(true)
-    } catch {
-      // Microphone permission denied or unavailable
+    } catch (error) {
+      if (error?.name === 'NotAllowedError') {
+        setVoiceError('Microphone permission was denied.')
+      } else {
+        setVoiceError('Unable to start voice recording.')
+      }
     }
   }, [isRecording])
 
-  const micLabel = isRecording ? '⏹' : '🎙'
+  const micLabel = transcribing ? '...' : (isRecording ? 'Stop' : 'Mic')
   const micTitle = isRecording ? 'Stop recording' : 'Record a question'
 
   return (
@@ -108,18 +136,18 @@ function PersistentChat({ drugName }) {
           {messages.length === 0 && !loading && (
             <div className="chat-panel-empty">
               Ask anything about {drugName
-                ? <><b style={{ color: 'var(--ink)' }}>{drugName}</b> — coverage rules, step therapy, site-of-care, or recent changes.</>
-                : 'any drug — coverage rules, step therapy, site-of-care, or policy changes.'}
+                ? <><b style={{ color: 'var(--ink)' }}>{drugName}</b> - coverage rules, step therapy, site-of-care, or recent changes.</>
+                : 'any drug - coverage rules, step therapy, site-of-care, or policy changes.'}
             </div>
           )}
-          {messages.map((m, i) => (
-            <div key={i} className={`chat-msg ${m.role === 'user' ? 'chat-u' : 'chat-a'}`}>
-              {m.text}
-              {m.sources && <div className="chat-src">{m.sources}</div>}
+          {messages.map((message, index) => (
+            <div key={index} className={`chat-msg ${message.role === 'user' ? 'chat-u' : 'chat-a'}`}>
+              {message.text}
+              {message.sources && <div className="chat-src">{message.sources}</div>}
             </div>
           ))}
           {loading && (
-            <div className="chat-msg chat-a" style={{ color: 'var(--ink3)', fontStyle: 'italic' }}>Thinking…</div>
+            <div className="chat-msg chat-a" style={{ color: 'var(--ink3)', fontStyle: 'italic' }}>Thinking...</div>
           )}
           <div ref={bottomRef} />
         </div>
@@ -129,26 +157,26 @@ function PersistentChat({ drugName }) {
             onClick={toggleVoice}
             title={micTitle}
             disabled={transcribing}
+            type="button"
           >
-            {transcribing ? '…' : micLabel}
+            {micLabel}
           </button>
           <input
             className="chat-input"
             value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && send()}
-            placeholder={transcribing ? 'Transcribing…' : 'Ask about any drug or policy…'}
+            onChange={event => setInput(event.target.value)}
+            onKeyDown={event => event.key === 'Enter' && send()}
+            placeholder={transcribing ? 'Transcribing...' : 'Ask about any drug or policy...'}
           />
-          <button className="btn-solid" style={{ fontSize: '12px', padding: '9px 14px' }} onClick={send} disabled={loading}>
+          <button className="btn-solid chat-send-btn" onClick={send} disabled={loading} type="button">
             Ask
           </button>
         </div>
+        {voiceError && <div className="chat-input-error">{voiceError}</div>}
       </div>
     </aside>
   )
 }
-
-// ── Main page ──────────────────────────────────────────────────────────────────
 
 export default function Home() {
   const [nav, setNav] = useState('search')
@@ -169,8 +197,10 @@ export default function Home() {
 
   useEffect(() => {
     fetch('/api/payers')
-      .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data?.length) setPayers(data.map(p => p.short_name || p.name)) })
+      .then(response => response.ok ? response.json() : null)
+      .then(data => {
+        if (data?.length) setPayers(data.map(payer => payer.short_name || payer.name))
+      })
       .catch(() => {})
   }, [])
 
@@ -180,12 +210,12 @@ export default function Home() {
     setHeatmapLoading(true)
     setHeatmapError('')
     fetch('/api/coverage/heatmap')
-      .then(async r => {
-        const data = await r.json()
-        if (!r.ok) throw new Error(data.error || 'Unable to load heatmap')
+      .then(async response => {
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.error || 'Unable to load heatmap')
         setHeatmapData(data)
       })
-      .catch(err => setHeatmapError(err.message || 'Unable to load heatmap'))
+      .catch(error => setHeatmapError(error.message || 'Unable to load heatmap'))
       .finally(() => setHeatmapLoading(false))
   }, [nav, heatmapData.drugs.length, heatmapLoading])
 
@@ -203,14 +233,14 @@ export default function Home() {
     setAlertsLoading(true)
     setAlertsError('')
     fetch('/api/alerts')
-      .then(async r => {
-        const data = await r.json()
-        if (!r.ok) throw new Error(data.error || 'Unable to load alerts')
+      .then(async response => {
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.error || 'Unable to load alerts')
         const alerts = data.alerts || []
         setAlertsData(alerts)
         writeAlertsCache(alerts)
       })
-      .catch(err => setAlertsError(err.message || 'Unable to load alerts'))
+      .catch(error => setAlertsError(error.message || 'Unable to load alerts'))
       .finally(() => setAlertsLoading(false))
   }, [nav, alertsLoading])
 
@@ -227,17 +257,17 @@ export default function Home() {
     setCompareLoading(true)
     setCompareError('')
     fetch(`/api/coverage/compare?drug=${encodeURIComponent(result.name)}`)
-      .then(async r => {
-        const data = await r.json()
-        if (!r.ok) throw new Error(data.error || 'Unable to load comparison')
+      .then(async response => {
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.error || 'Unable to load comparison')
         setCompareData(data)
       })
-      .catch(err => setCompareError(err.message || 'Unable to load comparison'))
+      .catch(error => setCompareError(error.message || 'Unable to load comparison'))
       .finally(() => setCompareLoading(false))
   }, [nav, result?.name])
 
-  async function handleSearch(q) {
-    const trimmed = q.trim()
+  async function handleSearch(nextQuery) {
+    const trimmed = nextQuery.trim()
     if (!trimmed) return
     setQuery(trimmed)
     setNotFound(false)
@@ -245,7 +275,11 @@ export default function Home() {
     setNav('search')
     try {
       const res = await fetch(`/api/search?q=${encodeURIComponent(trimmed)}`)
-      if (!res.ok) { setResult(null); setNotFound(true); return }
+      if (!res.ok) {
+        setResult(null)
+        setNotFound(true)
+        return
+      }
       setResult(await res.json())
     } finally {
       setLoading(false)
@@ -253,7 +287,7 @@ export default function Home() {
   }
 
   const burdenStyle = result ? getBurdenStyle(result.burdenScore) : {}
-  const alertCount = alertsData.filter(a => a.type === 'negative').length
+  const alertCount = alertsData.filter(alert => alert.type === 'negative').length
 
   return (
     <div>
@@ -262,9 +296,7 @@ export default function Home() {
       <div className="shell">
         <Sidebar active={nav} onNav={setNav} alertCount={alertCount} />
 
-        {/* ── Centre column ───────────────────────────────────────── */}
         <div className="center-col">
-
           {nav === 'search' && (
             <>
               <SearchHero
@@ -274,7 +306,7 @@ export default function Home() {
                 indexStats={INDEX_STATS}
               />
               <div className="content">
-                {loading && <div className="search-status">Searching…</div>}
+                {loading && <div className="search-status">Searching...</div>}
 
                 {notFound && !loading && (
                   <div className="search-status">
@@ -296,7 +328,7 @@ export default function Home() {
                         <div className="drug-name">{result.name}</div>
                         <div className="drug-generic">{result.generic}</div>
                         <div className="drug-tags">
-                          {result.tags.map(t => <span key={t} className="dtag">{t}</span>)}
+                          {result.tags.map(tag => <span key={tag} className="dtag">{tag}</span>)}
                         </div>
                       </div>
                       <div className="burden-badge" style={burdenStyle}>
@@ -360,7 +392,6 @@ export default function Home() {
           <TrustBar />
         </div>
 
-        {/* ── Persistent chat panel ───────────────────────────────── */}
         <PersistentChat drugName={result?.name ?? null} />
       </div>
     </div>

@@ -45,7 +45,6 @@ app.add_middleware(
 )
 
 CLAUDE_API_KEY = os.getenv("CLAUDE_API_KEY") or os.getenv("ANTHROPIC_API_KEY")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 ALLOWED_EXTENSIONS = {".pdf", ".docx", ".doc"}
 
 
@@ -318,6 +317,6 @@ async def chat(body: dict):
     question = body.get("question", "").strip()
     if not question:
         raise HTTPException(400, "question is required")
-    if not GEMINI_API_KEY:
-        raise HTTPException(500, "GEMINI_API_KEY not configured")
-    return await answer_question(question, GEMINI_API_KEY)
+    if not CLAUDE_API_KEY:
+        raise HTTPException(500, "ANTHROPIC_API_KEY not configured")
+    return await answer_question(question, CLAUDE_API_KEY)

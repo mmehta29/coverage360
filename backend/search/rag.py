@@ -4,14 +4,14 @@ RAG-based natural language Q&A over the policy database.
 Strategy (no vector embeddings required for MVP):
   1. Parse the question to identify drug name + payer name + question type.
   2. Pull relevant coverage_rules rows from Supabase using structured queries.
-  3. Pass those rows as context to Gemini to generate a plain-language answer.
+  3. Pass those rows as context to Claude to generate a plain-language answer.
 
 This avoids needing pgvector setup for the hackathon while still giving accurate,
-grounded answers — Gemini sees the actual policy data, not hallucinated facts.
+grounded answers — Claude sees the actual policy data, not hallucinated facts.
 """
 import json
 
-import google.generativeai as genai
+import anthropic
 
 from database.supabase_client import get_client
 
@@ -113,7 +113,7 @@ async def answer_question(question: str, api_key: str) -> dict:
             "context_rows_used": 0,
         }
 
-    # Format context for Gemini
+    # Format context for Claude
     context_lines = []
     sources = []
     for r in rows:
@@ -141,22 +141,25 @@ async def answer_question(question: str, api_key: str) -> dict:
 
     context_text = "\n---\n".join(context_lines)
 
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel(
-        model_name="gemini-2.0-flash",
-        system_instruction=SYSTEM_PROMPT,
+    client = anthropic.Anthropic(api_key=api_key)
+    message = client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=1024,
+        system=SYSTEM_PROMPT,
+        messages=[
+            {
+                "role": "user",
+                "content": (
+                    f"COVERAGE DATABASE CONTEXT:\n{context_text}\n\n"
+                    f"USER QUESTION: {question}"
+                ),
+            }
+        ],
     )
-
-    prompt = (
-        f"COVERAGE DATABASE CONTEXT:\n{context_text}\n\n"
-        f"USER QUESTION: {question}"
-    )
-
-    response = await model.generate_content_async(prompt)
 
     return {
         "question": question,
-        "answer": response.text,
+        "answer": message.content[0].text,
         "sources": sources,
         "context_rows_used": len(rows),
     }

@@ -20,7 +20,8 @@ export async function POST(request) {
   // Forward audio to ElevenLabs speech-to-text
   const body = new FormData()
   body.append('file', audio, 'recording.webm')
-  body.append('model_id', 'scribe_v1')
+  body.append('model_id', 'scribe_v2')
+  body.append('language_code', 'en')
 
   let res
   try {
@@ -34,8 +35,15 @@ export async function POST(request) {
   }
 
   if (!res.ok) {
-    const err = await res.text()
-    return Response.json({ error: err || 'Transcription failed' }, { status: res.status })
+    let message = 'Transcription failed'
+    try {
+      const err = await res.json()
+      message = err.detail?.message || err.detail || err.error || message
+    } catch {
+      const errText = await res.text()
+      if (errText) message = errText
+    }
+    return Response.json({ error: message }, { status: res.status })
   }
 
   const data = await res.json()

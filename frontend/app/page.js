@@ -8,10 +8,13 @@ import CoverageHeatmap from '@/components/CoverageHeatmap'
 import AlertsPanel from '@/components/AlertsPanel'
 import CompareView from '@/components/CompareView'
 import TrustBar from '@/components/TrustBar'
-import { PAYERS as FALLBACK_PAYERS, INDEX_STATS, ALERTS_DATA } from '@/lib/mockData'
+import { PAYERS as FALLBACK_PAYERS, INDEX_STATS } from '@/lib/mockData'
 
 // ── Inline persistent chat (not imported from ChatWidget to keep panel layout tight) ──
 import { useCallback } from 'react'
+
+const ALERTS_CACHE_KEY = 'coverage360-alerts-cache-v1'
+const ALERTS_CACHE_TTL_MS = 24 * 60 * 60 * 1000
 
 function PersistentChat({ drugName }) {
   const [messages, setMessages] = useState([])
@@ -96,6 +99,15 @@ export default function Home() {
   const [notFound, setNotFound] = useState(false)
   const [loading, setLoading] = useState(false)
   const [payers, setPayers] = useState(FALLBACK_PAYERS)
+  const [heatmapData, setHeatmapData] = useState({ drugs: [], payers: [], matrix: {} })
+  const [heatmapLoading, setHeatmapLoading] = useState(false)
+  const [heatmapError, setHeatmapError] = useState('')
+  const [compareData, setCompareData] = useState({ comparison: {}, payers: [] })
+  const [compareLoading, setCompareLoading] = useState(false)
+  const [compareError, setCompareError] = useState('')
+  const [alertsData, setAlertsData] = useState([])
+  const [alertsLoading, setAlertsLoading] = useState(false)
+  const [alertsError, setAlertsError] = useState('')
 
   useEffect(() => {
     fetch('/api/payers')
@@ -103,6 +115,68 @@ export default function Home() {
       .then(data => { if (data?.length) setPayers(data.map(p => p.short_name || p.name)) })
       .catch(() => {})
   }, [])
+
+  useEffect(() => {
+    if (nav !== 'heatmap' || heatmapData.drugs.length > 0 || heatmapLoading) return
+
+    setHeatmapLoading(true)
+    setHeatmapError('')
+    fetch('/api/coverage/heatmap')
+      .then(async r => {
+        const data = await r.json()
+        if (!r.ok) throw new Error(data.error || 'Unable to load heatmap')
+        setHeatmapData(data)
+      })
+      .catch(err => setHeatmapError(err.message || 'Unable to load heatmap'))
+      .finally(() => setHeatmapLoading(false))
+  }, [nav, heatmapData.drugs.length, heatmapLoading])
+
+  useEffect(() => {
+    if (nav !== 'alerts' || alertsLoading) return
+
+    const cached = readAlertsCache()
+    const cacheIsFresh = cached && Date.now() - cached.savedAt < ALERTS_CACHE_TTL_MS
+    if (cacheIsFresh) {
+      setAlertsData(cached.alerts)
+      setAlertsError('')
+      return
+    }
+
+    setAlertsLoading(true)
+    setAlertsError('')
+    fetch('/api/alerts')
+      .then(async r => {
+        const data = await r.json()
+        if (!r.ok) throw new Error(data.error || 'Unable to load alerts')
+        const alerts = data.alerts || []
+        setAlertsData(alerts)
+        writeAlertsCache(alerts)
+      })
+      .catch(err => setAlertsError(err.message || 'Unable to load alerts'))
+      .finally(() => setAlertsLoading(false))
+  }, [nav, alertsLoading])
+
+  useEffect(() => {
+    const cached = readAlertsCache()
+    if (cached?.alerts?.length) {
+      setAlertsData(cached.alerts)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (nav !== 'compare' || !result?.name) return
+
+    setCompareLoading(true)
+    setCompareError('')
+    fetch(`/api/coverage/compare?drug=${encodeURIComponent(result.name)}`)
+      .then(async r => {
+        const data = await r.json()
+        if (!r.ok) throw new Error(data.error || 'Unable to load comparison')
+        setCompareData(data)
+      })
+      .catch(err => setCompareError(err.message || 'Unable to load comparison'))
+      .finally(() => setCompareLoading(false))
+  }, [nav, result?.name])
 
   async function handleSearch(q) {
     const trimmed = q.trim()
@@ -121,7 +195,7 @@ export default function Home() {
   }
 
   const burdenStyle = result ? getBurdenStyle(result.burdenScore) : {}
-  const alertCount = ALERTS_DATA.filter(a => a.type === 'negative').length
+  const alertCount = alertsData.filter(a => a.type === 'negative').length
 
   return (
     <div>
@@ -185,7 +259,13 @@ export default function Home() {
                 <div className="view-title">Coverage heatmap</div>
                 <div className="view-sub">At-a-glance coverage status across all indexed drugs and payers.</div>
               </div>
-              <CoverageHeatmap />
+              <CoverageHeatmap
+                drugs={heatmapData.drugs}
+                payers={heatmapData.payers}
+                matrix={heatmapData.matrix}
+                loading={heatmapLoading}
+                error={heatmapError}
+              />
             </div>
           )}
 
@@ -199,7 +279,13 @@ export default function Home() {
                     : 'Search for a drug to compare coverage side-by-side.'}
                 </div>
               </div>
-              <CompareView result={result} onGoToSearch={() => setNav('search')} />
+              <CompareView
+                result={result}
+                comparisonData={compareData}
+                loading={compareLoading}
+                error={compareError}
+                onGoToSearch={() => setNav('search')}
+              />
             </div>
           )}
 
@@ -209,7 +295,7 @@ export default function Home() {
                 <div className="view-title">Policy alerts</div>
                 <div className="view-sub">Recent coverage changes detected across indexed policies.</div>
               </div>
-              <AlertsPanel />
+              <AlertsPanel alerts={alertsData} loading={alertsLoading} error={alertsError} />
             </div>
           )}
 
@@ -227,4 +313,26 @@ function getBurdenStyle(score) {
   if (score >= 70) return { borderColor: 'var(--denied-br)', background: 'var(--denied-bg)', color: 'var(--denied)' }
   if (score >= 50) return { borderColor: 'var(--restricted-br)', background: 'var(--restricted-bg)', color: 'var(--restricted)' }
   return { borderColor: 'var(--covered-br)', background: 'var(--covered-bg)', color: 'var(--covered)' }
+}
+
+function readAlertsCache() {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = window.localStorage.getItem(ALERTS_CACHE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed.alerts) ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+function writeAlertsCache(alerts) {
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage.setItem(ALERTS_CACHE_KEY, JSON.stringify({
+      alerts,
+      savedAt: Date.now(),
+    }))
+  } catch {}
 }

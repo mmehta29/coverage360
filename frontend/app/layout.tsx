@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
+import { GeistSans } from "geist/font/sans";
+import { GeistMono } from "geist/font/mono";
 import { Providers } from "./providers";
-// @ts-expect-error css side-effect import
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -14,10 +15,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full">
-      <body className="min-h-full">
-        <Providers>{children}</Providers>
-      </body>
+    <html
+      lang="en"
+      className={`${GeistSans.variable} ${GeistMono.variable} h-full antialiased`}
+    >
+      <body className="min-h-full flex flex-col"><Providers>{children}</Providers></body>
     </html>
   );
 }

@@ -198,7 +198,7 @@ export const DRUG_DB = {
 export const INDEX_STATS = {
   policies: 847,
   payers: 3,
-  updated: 'Apr 4, 2026',
+  updated: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
 }
 
 export const PAYERS = ['UnitedHealth', 'Cigna', 'Priority Health']

@@ -1,19 +1,16 @@
-const BACKEND_URL = process.env.BACKEND_URL
+import { lookupDrug } from '@/lib/mockData'
 
-export async function GET() {
-  if (!BACKEND_URL) {
-    return Response.json({ error: 'Backend not configured' }, { status: 503 })
+export async function GET(request) {
+  const { searchParams } = new URL(request.url)
+  const query = searchParams.get('q') ?? ''
+
+  // TODO: replace with real backend call:
+  // const res = await fetch(`${process.env.BACKEND_URL}/search/drug/${encodeURIComponent(query)}`)
+  // return Response.json(await res.json())
+
+  const drug = lookupDrug(query)
+  if (!drug) {
+    return Response.json({ error: 'Not found' }, { status: 404 })
   }
-
-  let res
-  try {
-    res = await fetch(`${BACKEND_URL}/payers`, { cache: 'no-store' })
-  } catch {
-    return Response.json({ error: 'Backend unreachable' }, { status: 502 })
-  }
-
-  if (!res.ok) return Response.json({ error: 'Unable to load payers' }, { status: res.status })
-
-  const data = await res.json()
-  return Response.json(data) // [{ id, name, short_name, type, ... }]
+  return Response.json(drug)
 }

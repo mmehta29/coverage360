@@ -17,13 +17,16 @@ Endpoints:
 import os
 import tempfile
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Optional
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
-load_dotenv()  # loads backend/.env
+BASE_DIR = Path(__file__).resolve().parent
+load_dotenv(BASE_DIR / ".env")
+load_dotenv(BASE_DIR / ".env.local", override=True)
 
 from extraction.gemini_extractor import extract_policy
 from normalization.normalizer import normalize_and_store
@@ -42,6 +45,7 @@ app.add_middleware(
 )
 
 CLAUDE_API_KEY = os.getenv("CLAUDE_API_KEY") or os.getenv("ANTHROPIC_API_KEY")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 ALLOWED_EXTENSIONS = {".pdf", ".docx", ".doc"}
 
 
@@ -314,6 +318,6 @@ async def chat(body: dict):
     question = body.get("question", "").strip()
     if not question:
         raise HTTPException(400, "question is required")
-    if not CLAUDE_API_KEY:
-        raise HTTPException(500, "ANTHROPIC_API_KEY not configured")
-    return await answer_question(question, CLAUDE_API_KEY)
+    if not GEMINI_API_KEY:
+        raise HTTPException(500, "GEMINI_API_KEY not configured")
+    return await answer_question(question, GEMINI_API_KEY)

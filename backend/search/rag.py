@@ -4,17 +4,16 @@ RAG-based natural language Q&A over the policy database.
 Strategy (no vector embeddings required for MVP):
   1. Parse the question to identify drug name + payer name + question type.
   2. Pull relevant coverage_rules rows from Supabase using structured queries.
-  3. Pass those rows as context to Claude to generate a plain-language answer.
+  3. Pass those rows as context to Gemini to generate a plain-language answer.
 
 This avoids needing pgvector setup for the hackathon while still giving accurate,
-grounded answers — Claude sees the actual policy data, not hallucinated facts.
+grounded answers — Gemini sees the actual policy data, not hallucinated facts.
 """
 import json
 
-import anthropic
+import google.generativeai as genai
 
 from database.supabase_client import get_client
-from search.openfda import resolve_drug_name
 
 SYSTEM_PROMPT = """You are Coverage360, an AI assistant that helps market access analysts
 answer questions about medical benefit drug coverage policies across health plans.
@@ -29,6 +28,7 @@ Rules:
 - When listing PA criteria, present them as a clear bulleted list.
 - When comparing payers, use a structured format (payer | status | step therapy | PA required).
 - Always mention the policy effective date so the analyst knows how current the information is.
+- Focus exclusively on commercial medical benefit policies.
 """
 
 
@@ -41,7 +41,6 @@ def _fetch_context(question: str) -> tuple[list[dict], str]:
     q_lower = question.lower()
 
     # Try to extract drug name from question (crude but effective for demo)
-    # Look for known drug name patterns
     drug_terms = []
     for word in question.split():
         cleaned = word.strip("?.,;:'\"").lower()
@@ -94,7 +93,8 @@ def _fetch_context(question: str) -> tuple[list[dict], str]:
             seen.add(key)
             deduped.append(r)
 
-    search_summary = f"Found {len(deduped)} relevant coverage rule(s) across {len({(r.get('policies') or {}).get('payers', {}).get('name') for r in deduped})} payer(s)."
+    payer_set = {(r.get("policies") or {}).get("payers", {}).get("name") for r in deduped}
+    search_summary = f"Found {len(deduped)} relevant coverage rule(s) across {len(payer_set)} payer(s)."
     return deduped[:20], search_summary  # cap context at 20 rows
 
 
@@ -113,7 +113,7 @@ async def answer_question(question: str, api_key: str) -> dict:
             "context_rows_used": 0,
         }
 
-    # Format context for Claude
+    # Format context for Gemini
     context_lines = []
     sources = []
     for r in rows:
@@ -141,25 +141,22 @@ async def answer_question(question: str, api_key: str) -> dict:
 
     context_text = "\n---\n".join(context_lines)
 
-    client = anthropic.Anthropic(api_key=api_key)
-    message = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=1024,
-        system=SYSTEM_PROMPT,
-        messages=[
-            {
-                "role": "user",
-                "content": (
-                    f"COVERAGE DATABASE CONTEXT:\n{context_text}\n\n"
-                    f"USER QUESTION: {question}"
-                ),
-            }
-        ],
+    genai.configure(api_key=api_key)
+    model = genai.GenerativeModel(
+        model_name="gemini-2.0-flash",
+        system_instruction=SYSTEM_PROMPT,
     )
+
+    prompt = (
+        f"COVERAGE DATABASE CONTEXT:\n{context_text}\n\n"
+        f"USER QUESTION: {question}"
+    )
+
+    response = await model.generate_content_async(prompt)
 
     return {
         "question": question,
-        "answer": message.content[0].text,
+        "answer": response.text,
         "sources": sources,
         "context_rows_used": len(rows),
     }

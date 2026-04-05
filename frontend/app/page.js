@@ -20,7 +20,11 @@ function PersistentChat({ drugName }) {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [isRecording, setIsRecording] = useState(false)
+  const [transcribing, setTranscribing] = useState(false)
   const bottomRef = useRef(null)
+  const recorderRef = useRef(null)
+  const chunksRef = useRef([])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -46,6 +50,52 @@ function PersistentChat({ drugName }) {
       setLoading(false)
     }
   }, [input, loading, drugName])
+
+  const toggleVoice = useCallback(async () => {
+    // Stop an active recording
+    if (isRecording) {
+      recorderRef.current?.stop()
+      setIsRecording(false)
+      return
+    }
+
+    // Start recording
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const recorder = new MediaRecorder(stream)
+      chunksRef.current = []
+      recorderRef.current = recorder
+
+      recorder.ondataavailable = e => {
+        if (e.data.size > 0) chunksRef.current.push(e.data)
+      }
+
+      recorder.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop())
+        const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
+        const fd = new FormData()
+        fd.append('audio', blob)
+        setTranscribing(true)
+        try {
+          const res = await fetch('/api/voice', { method: 'POST', body: fd })
+          const data = await res.json()
+          if (data.transcript) setInput(data.transcript)
+        } catch {
+          // Fail silently — user can still type
+        } finally {
+          setTranscribing(false)
+        }
+      }
+
+      recorder.start()
+      setIsRecording(true)
+    } catch {
+      // Microphone permission denied or unavailable
+    }
+  }, [isRecording])
+
+  const micLabel = isRecording ? '⏹' : '🎙'
+  const micTitle = isRecording ? 'Stop recording' : 'Record a question'
 
   return (
     <aside className="chat-panel">
@@ -74,12 +124,20 @@ function PersistentChat({ drugName }) {
           <div ref={bottomRef} />
         </div>
         <div className="chat-input-row">
+          <button
+            className={`chat-mic-btn${isRecording ? ' recording' : ''}`}
+            onClick={toggleVoice}
+            title={micTitle}
+            disabled={transcribing}
+          >
+            {transcribing ? '…' : micLabel}
+          </button>
           <input
             className="chat-input"
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && send()}
-            placeholder="Ask about any drug or policy…"
+            placeholder={transcribing ? 'Transcribing…' : 'Ask about any drug or policy…'}
           />
           <button className="btn-solid" style={{ fontSize: '12px', padding: '9px 14px' }} onClick={send} disabled={loading}>
             Ask

@@ -18,7 +18,7 @@ export default function TrustBar() {
         No cross-org data sharing
       </div>
       <div style={{marginLeft:'auto',fontSize:'11px',color:'var(--ink3)',fontWeight:300}}>
-        Coverage360 · Innovation Hacks 2.0 · April 2026
+        Coverage360 · {new Date().getFullYear()}
       </div>
     </div>
   )

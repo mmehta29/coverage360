@@ -10,16 +10,17 @@ export async function POST(request) {
     return Response.json({ error: 'Backend not configured' }, { status: 503 })
   }
 
-  let res
-  try {
-    res = await fetch(`${BACKEND_URL}/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      // Backend only takes `question`; `drug` context is handled by its RAG retrieval
-      body: JSON.stringify({ question }),
-    })
-  } catch {
-    return Response.json({ error: 'Backend unreachable' }, { status: 502 })
+  if (BACKEND_URL) {
+    try {
+      const res = await fetch(`${BACKEND_URL}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question, drug }),
+      })
+      if (res.ok) return Response.json(await res.json())
+    } catch {
+      // fall through to mock
+    }
   }
 
   if (!res.ok) {

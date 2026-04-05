@@ -1,292 +1,198 @@
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Lora:wght@400;500&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap');
-*{box-sizing:border-box;margin:0;padding:0;}
-:root{
-  --navy:#1a2e4a;
-  --accent:#2563a8;
-  --accent-lt:#eef4fc;
-  --ink:#1c2b3a;
-  --ink2:#4a5f78;
-  --ink3:#8a9db5;
-  --line:#e2e8f0;
-  --line2:#edf2f7;
-  --bg:#f7f9fc;
-  --white:#ffffff;
-  --covered:#0f7251;
-  --covered-bg:#edf7f3;
-  --covered-br:#b0dece;
-  --restricted:#854f0b;
-  --restricted-bg:#fef6ea;
-  --restricted-br:#f5d18a;
-  --denied:#a32d2d;
-  --denied-bg:#fdf1f1;
-  --denied-br:#f0b8b8;
-  --serif:'Lora',Georgia,serif;
-  --sans:'DM Sans',system-ui,sans-serif;
-  --mono:'DM Mono',monospace;
-  --r:8px;--rl:12px;
-}
-body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:13.5px;line-height:1.5;}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coverage360 - Medical Benefit Drug Coverage Intelligence</title>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
-.topbar{background:var(--white);border-bottom:1px solid var(--line);padding:0 28px;height:54px;display:flex;align-items:center;}
-.logo{display:flex;align-items:baseline;gap:0;}
-.logo-main{font-family:var(--serif);font-size:20px;font-weight:500;color:var(--navy);}
-.logo-360{font-family:var(--serif);font-size:20px;font-weight:400;color:var(--accent);}
-.logo-tag{font-size:10px;color:var(--ink3);font-weight:300;margin-left:10px;letter-spacing:0.2px;align-self:center;}
-.topbar-right{margin-left:auto;display:flex;align-items:center;gap:10px;}
-.payer-pill{font-size:11px;color:var(--ink2);background:var(--bg);border:1px solid var(--line);border-radius:20px;padding:3px 10px;}
-.btn-ghost{font-size:12px;font-weight:500;font-family:var(--sans);color:var(--accent);background:transparent;border:1px solid var(--line);border-radius:6px;padding:6px 13px;cursor:pointer;}
-.btn-solid{font-size:12px;font-weight:500;font-family:var(--sans);color:#fff;background:var(--accent);border:1px solid var(--accent);border-radius:6px;padding:6px 13px;cursor:pointer;}
+        :root {
+            --slate: #3e5161;
+            --sky: #91bfeb;
+            --navy: #15173f;
+            --white: #ffffff;
+            --line: #dee2e6;
+            --ink2: #6c757d;
+        }
 
-.shell{display:flex;min-height:calc(100vh - 54px - 38px);}
+        body {
+            font-family: 'Roboto', sans-serif;
+            min-height: 100vh;
+            background: #faf8f5;
+            overflow: hidden;
+        }
 
-.sidebar{width:196px;min-width:196px;background:var(--white);border-right:1px solid var(--line);padding:20px 0;display:flex;flex-direction:column;}
-.sb-item{display:flex;align-items:center;gap:9px;padding:9px 18px;font-size:13px;color:var(--ink2);cursor:pointer;border-left:2px solid transparent;transition:all 0.12s;}
-.sb-item:hover{background:var(--bg);color:var(--ink);}
-.sb-item.on{background:var(--accent-lt);color:var(--accent);border-left-color:var(--accent);font-weight:500;}
-.sb-icon{width:15px;height:15px;flex-shrink:0;stroke:currentColor;stroke-width:1.6;fill:none;}
-.sb-divider{height:1px;background:var(--line);margin:14px 18px;}
-.sb-label{font-size:10px;font-weight:500;letter-spacing:1px;text-transform:uppercase;color:var(--ink3);padding:0 18px;margin-bottom:4px;margin-top:2px;}
-.sb-badge{margin-left:auto;background:var(--denied-bg);color:var(--denied);font-size:10px;font-family:var(--mono);padding:1px 6px;border-radius:10px;}
+        /* Watercolor washes */
+        .wc { position: fixed; pointer-events: none; z-index: 0; }
+        .wc-1 { top: -80px; left: -60px; width: 600px; height: 600px; border-radius: 60% 40% 55% 45% / 50% 60% 40% 55%; background: radial-gradient(ellipse, rgba(255,160,60,0.38) 0%, rgba(255,120,30,0.18) 50%, transparent 75%); filter: blur(40px); mix-blend-mode: multiply; }
+        .wc-2 { top: 10%; right: -80px; width: 550px; height: 650px; border-radius: 45% 55% 40% 60% / 60% 40% 55% 45%; background: radial-gradient(ellipse, rgba(100,180,230,0.35) 0%, rgba(60,140,210,0.18) 50%, transparent 75%); filter: blur(50px); mix-blend-mode: multiply; }
+        .wc-3 { bottom: -60px; left: 30%; width: 580px; height: 500px; border-radius: 55% 45% 60% 40% / 45% 55% 40% 60%; background: radial-gradient(ellipse, rgba(220,60,140,0.28) 0%, rgba(200,40,120,0.14) 50%, transparent 75%); filter: blur(45px); mix-blend-mode: multiply; }
+        .wc-4 { top: 40%; left: 20%; width: 400px; height: 400px; border-radius: 50%; background: radial-gradient(ellipse, rgba(255,200,80,0.2) 0%, transparent 70%); filter: blur(60px); mix-blend-mode: multiply; }
+        .wc-5 { bottom: 10%; right: 15%; width: 350px; height: 350px; border-radius: 50%; background: radial-gradient(ellipse, rgba(80,160,220,0.22) 0%, transparent 70%); filter: blur(55px); mix-blend-mode: multiply; }
 
-.main{flex:1;display:flex;flex-direction:column;}
+        /* Top bar */
+        .topbar {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: 64px;
+            padding: 0 28px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 10;
+        }
 
-.search-hero{background:var(--white);border-bottom:1px solid var(--line);padding:28px 36px 22px;}
-.search-eyebrow{font-size:11px;font-weight:500;letter-spacing:0.9px;text-transform:uppercase;color:var(--ink3);margin-bottom:10px;}
-.search-bar{display:flex;gap:10px;align-items:center;}
-.search-wrap{flex:1;position:relative;}
-.search-input{width:100%;background:var(--bg);border:1.5px solid var(--line);border-radius:var(--r);color:var(--ink);font-family:var(--sans);font-size:14px;padding:12px 14px 12px 40px;outline:none;transition:border-color 0.15s;}
-.search-input:focus{border-color:var(--accent);background:var(--white);}
-.s-ico{position:absolute;left:13px;top:50%;transform:translateY(-50%);}
-.recent-row{display:flex;align-items:center;gap:8px;margin-top:10px;}
-.recent-lbl{font-size:11px;color:var(--ink3);font-weight:300;}
-.recent-tag{font-size:12px;color:var(--accent);cursor:pointer;padding:2px 8px;border-radius:4px;background:var(--accent-lt);}
+        .topbar img { height: 48px; width: auto; }
 
-.content{flex:1;padding:28px 36px;display:flex;flex-direction:column;gap:22px;}
+        .topbar-actions { display: flex; gap: 10px; }
 
-.result-top{display:flex;align-items:flex-start;justify-content:space-between;}
-.drug-name{font-family:var(--serif);font-size:22px;font-weight:500;color:var(--navy);letter-spacing:-0.3px;}
-.drug-generic{font-size:12px;color:var(--ink3);font-weight:300;margin-top:3px;}
-.drug-tags{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;}
-.dtag{font-size:11px;font-family:var(--mono);padding:2px 8px;border-radius:4px;background:var(--bg);color:var(--ink2);border:1px solid var(--line);}
+        .btn-ghost {
+            font-size: 12px; font-weight: 500; font-family: 'Roboto', sans-serif;
+            color: var(--slate); background: rgba(200,205,210,0.45);
+            border: 1.5px solid rgba(220,224,228,0.7);
+            border-radius: 999px; padding: 7px 16px; cursor: pointer;
+            -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+            transition: all 0.2s;
+        }
+        .btn-ghost:hover { background: rgba(200,205,210,0.7); }
 
-.burden-badge{display:flex;flex-direction:column;align-items:center;justify-content:center;width:68px;height:68px;border-radius:50%;border:2px solid var(--restricted-br);background:var(--restricted-bg);}
-.burden-num{font-family:var(--serif);font-size:20px;font-weight:500;color:var(--restricted);line-height:1;}
-.burden-lbl{font-size:9px;color:var(--restricted);font-family:var(--mono);letter-spacing:0.3px;margin-top:2px;}
+        .btn-solid {
+            font-size: 12px; font-weight: 500; font-family: 'Roboto', sans-serif;
+            color: var(--navy); background: rgba(200,205,210,0.55);
+            border: 1.5px solid rgba(220,224,228,0.7);
+            border-radius: 999px; padding: 7px 16px; cursor: pointer;
+            -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+            box-shadow: 0 4px 16px rgba(100,120,160,0.1), inset 0 1px 0 rgba(255,255,255,0.6);
+            transition: all 0.2s;
+        }
+        .btn-solid:hover { background: rgba(200,205,210,0.75); }
 
-.two-col{display:grid;grid-template-columns:1.15fr 0.85fr;gap:20px;}
+        /* Center content */
+        .center {
+            position: relative;
+            z-index: 1;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding-bottom: 48px;
+        }
 
-.card{background:var(--white);border:1px solid var(--line);border-radius:var(--rl);}
-.card-head{padding:13px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;}
-.card-title{font-size:12px;font-weight:500;color:var(--ink);}
-.card-action{font-size:11px;color:var(--accent);cursor:pointer;}
-.card-body{padding:18px 20px;}
+        .center img.logo { height: 200px; width: auto; }
 
-.ctable{width:100%;border-collapse:collapse;}
-.ctable th{font-size:10px;font-weight:500;letter-spacing:0.7px;text-transform:uppercase;color:var(--ink3);padding:0 8px 9px;text-align:left;border-bottom:1px solid var(--line);}
-.ctable td{padding:13px 8px;border-bottom:1px solid var(--line2);font-size:12.5px;vertical-align:top;}
-.ctable tr:last-child td{border-bottom:none;}
-.pnm{font-weight:500;color:var(--ink);font-size:13px;}
-.pill{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:500;padding:3px 9px;border-radius:20px;white-space:nowrap;}
-.pill-c{background:var(--covered-bg);color:var(--covered);border:1px solid var(--covered-br);}
-.pill-r{background:var(--restricted-bg);color:var(--restricted);border:1px solid var(--restricted-br);}
-.pdot{width:5px;height:5px;border-radius:50%;background:currentColor;}
-.crit{font-size:12px;color:var(--ink2);line-height:1.5;}
-.crit b{color:var(--ink);font-weight:500;}
-.eff{font-size:11px;color:var(--ink3);font-family:var(--mono);}
+        /* Search bar */
+        .search-wrap {
+            width: 100%;
+            max-width: 580px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+        }
 
-.chat-well{display:flex;flex-direction:column;gap:9px;}
-.chat-msg{padding:10px 13px;border-radius:var(--r);font-size:12.5px;line-height:1.6;}
-.chat-u{background:var(--accent-lt);color:var(--accent);border:1px solid #c7dcf5;font-style:italic;}
-.chat-a{background:var(--bg);color:var(--ink);border:1px solid var(--line);}
-.chat-src{font-size:10px;color:var(--ink3);margin-top:5px;padding-top:5px;border-top:1px solid var(--line);font-family:var(--mono);}
-.chat-input-row{display:flex;gap:8px;margin-top:10px;}
-.chat-input{flex:1;background:var(--bg);border:1px solid var(--line);border-radius:var(--r);color:var(--ink);font-family:var(--sans);font-size:12.5px;padding:9px 13px;outline:none;}
-.chat-input:focus{border-color:var(--accent);}
+        .search-bar {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            background: rgba(200,205,210,0.45);
+            -webkit-backdrop-filter: blur(16px);
+            backdrop-filter: blur(16px);
+            border: 1.5px solid rgba(220,224,228,0.7);
+            border-radius: 999px;
+            padding: 0 8px 0 20px;
+            box-shadow: 0 4px 24px rgba(100,120,160,0.1), inset 0 1px 0 rgba(255,255,255,0.6);
+            transition: all 0.2s;
+        }
+        .search-bar:focus-within {
+            background: rgba(200,205,210,0.65);
+            box-shadow: 0 6px 28px rgba(100,120,160,0.16), inset 0 1px 0 rgba(255,255,255,0.7);
+        }
 
-.trust-bar{background:var(--white);border-top:1px solid var(--line);padding:9px 28px;display:flex;align-items:center;gap:22px;}
-.ti{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--ink3);font-weight:300;}
-.tico{width:12px;height:12px;stroke:var(--ink3);stroke-width:1.6;fill:none;}
-</style>
+        .search-bar svg { flex-shrink: 0; color: var(--slate); }
 
-<div>
-<div class="topbar">
-  <div class="logo">
-    <span class="logo-main">Coverage</span><span class="logo-360">360</span>
-    <span class="logo-tag">by Anton Rx · Analyst Portal</span>
-  </div>
-  <div class="topbar-right">
-    <span class="payer-pill">UnitedHealth</span>
-    <span class="payer-pill">Cigna</span>
-    <span class="payer-pill">Priority Health</span>
-    <button class="btn-ghost">Upload PDF</button>
-    <button class="btn-solid">+ Add payer</button>
-  </div>
-</div>
+        .search-bar input {
+            flex: 1;
+            border: none;
+            background: transparent;
+            outline: none;
+            font-size: 15px;
+            font-family: 'Roboto', sans-serif;
+            color: var(--navy);
+            padding: 14px 12px;
+        }
+        .search-bar input::placeholder { color: rgba(62,81,97,0.45); }
 
-<div class="shell">
+        .search-bar button {
+            flex-shrink: 0;
+            background: rgba(255,255,255,0.5);
+            border: 1.5px solid rgba(220,224,228,0.7);
+            border-radius: 999px;
+            padding: 8px 20px;
+            font-size: 13px;
+            font-weight: 500;
+            font-family: 'Roboto', sans-serif;
+            color: var(--navy);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .search-bar button:hover { background: rgba(255,255,255,0.75); }
 
-<aside class="sidebar">
-  <div class="sb-item on">
-    <svg class="sb-icon" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5l3 3" stroke-linecap="round"/></svg>
-    Search
-  </div>
-  <div class="sb-item">
-    <svg class="sb-icon" viewBox="0 0 16 16"><path d="M2 13l3-3 2 2 4-5 3 4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    Intelligence
-  </div>
-  <div class="sb-divider"></div>
-  <div class="sb-label">Explore</div>
-  <div class="sb-item">
-    <svg class="sb-icon" viewBox="0 0 16 16"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M5 5.5h6M5 8h4M5 10.5h5"/></svg>
-    Heatmap
-  </div>
-  <div class="sb-item">
-    <svg class="sb-icon" viewBox="0 0 16 16"><rect x="2" y="3" width="5" height="10" rx="1"/><rect x="9" y="5" width="5" height="8" rx="1"/></svg>
-    Compare
-  </div>
-  <div class="sb-item">
-    <svg class="sb-icon" viewBox="0 0 16 16"><path d="M3 4h10M3 8h7M3 12h9" stroke-linecap="round"/></svg>
-    Policy diff
-  </div>
-  <div class="sb-divider"></div>
-  <div class="sb-item">
-    <svg class="sb-icon" viewBox="0 0 16 16"><path d="M8 2a5 5 0 100 10A5 5 0 008 2z"/><path d="M8 6v3" stroke-linecap="round"/><circle cx="8" cy="10.5" r="0.6" fill="currentColor" stroke="none"/></svg>
-    Alerts
-    <span class="sb-badge">3</span>
-  </div>
-</aside>
+        /* Quick suggestions */
+        .suggestions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center; }
+        .suggestions span { font-size: 11px; color: var(--ink2); }
+        .suggestions button {
+            font-size: 12px; padding: 4px 12px; border-radius: 999px;
+            background: rgba(200,205,210,0.4); border: 1.5px solid rgba(220,224,228,0.6);
+            color: var(--slate); cursor: pointer; font-family: 'Roboto', sans-serif;
+            -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+            transition: all 0.2s;
+        }
+        .suggestions button:hover { background: rgba(200,205,210,0.7); }
+    </style>
+</head>
+<body>
 
-<div class="main">
+    <!-- Watercolor background -->
+    <div class="wc wc-1"></div>
+    <div class="wc wc-2"></div>
+    <div class="wc wc-3"></div>
+    <div class="wc wc-4"></div>
+    <div class="wc wc-5"></div>
 
-  <div class="search-hero">
-    <div class="search-eyebrow">Medical benefit drug coverage</div>
-    <div class="search-bar">
-      <div class="search-wrap">
-        <div class="s-ico">
-          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#8a9db5" stroke-width="1.6"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5l3 3" stroke-linecap="round"/></svg>
+    <!-- Top bar -->
+    <div class="topbar">
+        <img src="/frontend/public/logo.png" alt="Coverage360" />
+        <div class="topbar-actions">
+            <button class="btn-ghost">Sign In</button>
+            <button class="btn-solid">Get Started</button>
         </div>
-        <input class="search-input" value="Rituximab" placeholder="Drug name, generic name, or J-code…">
-      </div>
-      <button class="btn-solid" style="padding:12px 22px;font-size:13px;">Search</button>
-    </div>
-    <div class="recent-row">
-      <span class="recent-lbl">Recent:</span>
-      <span class="recent-tag">Adalimumab</span>
-      <span class="recent-tag">Bevacizumab</span>
-      <span class="recent-tag">Pembrolizumab</span>
-      <span style="margin-left:auto;font-size:11px;color:var(--ink3);font-weight:300;">847 policies indexed · 3 payers · Updated Apr 4, 2026</span>
-    </div>
-  </div>
-
-  <div class="content">
-
-    <div class="result-top">
-      <div>
-        <div class="drug-name">Rituximab</div>
-        <div class="drug-generic">rituximab-abbs · Truxima · Ruxience</div>
-        <div class="drug-tags">
-          <span class="dtag">J9312</span>
-          <span class="dtag">CD20 monoclonal Ab</span>
-          <span class="dtag">Oncology / Rheumatology</span>
-          <span class="dtag">Biologic</span>
-        </div>
-      </div>
-      <div class="burden-badge">
-        <div class="burden-num">62</div>
-        <div class="burden-lbl">burden</div>
-      </div>
     </div>
 
-    <div class="two-col">
+    <!-- Center content -->
+    <div class="center">
+        <img class="logo" src="/frontend/public/logo.png" alt="Coverage360" />
 
-      <div class="card">
-        <div class="card-head">
-          <span class="card-title">Coverage across payers</span>
-          <span class="card-action">Export CSV →</span>
-        </div>
-        <div class="card-body">
-          <table class="ctable">
-            <thead>
-              <tr>
-                <th style="width:108px;">Payer</th>
-                <th style="width:90px;">Status</th>
-                <th>Criteria summary</th>
-                <th style="width:66px;text-align:right;">Effective</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><div class="pnm">UnitedHealth</div></td>
-                <td><span class="pill pill-c"><span class="pdot"></span>Covered</span></td>
-                <td><div class="crit"><b>PA required.</b> CD20+ confirmed. Prior anthracycline required. No step therapy.</div></td>
-                <td><div class="eff">Jan 2026</div></td>
-              </tr>
-              <tr>
-                <td><div class="pnm">Cigna</div></td>
-                <td><span class="pill pill-r"><span class="pdot"></span>Restricted</span></td>
-                <td><div class="crit"><b>Step therapy.</b> Biosimilar trial ≥12 wks before brand. PA required.</div></td>
-                <td><div class="eff">Feb 2026</div></td>
-              </tr>
-              <tr>
-                <td><div class="pnm">Priority Health</div></td>
-                <td><span class="pill pill-c"><span class="pdot"></span>Covered</span></td>
-                <td><div class="crit"><b>PA required.</b> Oncology only. Ambulatory infusion site preferred.</div></td>
-                <td><div class="eff">Jan 2026</div></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-head">
-          <span class="card-title">Ask a question</span>
-          <span class="card-action" style="color:var(--covered);font-size:10.5px;">Grounded in source policies</span>
-        </div>
-        <div class="card-body">
-          <div class="chat-well">
-            <div class="chat-msg chat-u">Which plans cover Rituximab for RA?</div>
-            <div class="chat-msg chat-a">
-              <span style="color:var(--covered);font-weight:500;">UnitedHealth</span> and <span style="color:var(--covered);font-weight:500;">Priority Health</span> cover Rituximab for rheumatoid arthritis with prior authorization. <span style="color:var(--restricted);font-weight:500;">Cigna</span> requires a biosimilar step-therapy trial first, effective Feb 2026.
-              <div class="chat-src">Sources: UHC MP-02.093 · Cigna CPB 0656 · PH Drug List 2026</div>
+        <div class="search-wrap">
+            <div class="search-bar">
+                <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+                    <circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5l3 3" stroke-linecap="round"/>
+                </svg>
+                <input type="text" placeholder="Drug name, generic name, or J-code…" />
+                <button>Search</button>
             </div>
-            <div class="chat-msg chat-u">What changed at UHC this quarter?</div>
-            <div class="chat-msg chat-a">
-              UHC reduced their prior chemo requirement from 2 regimens to 1, added biosimilar step therapy, and restricted site of care to ambulatory infusion centers. Effective Jan 1, 2026.
-              <div class="chat-src">Source: UHC Policy MP-02.093 · Q4 2025 update bulletin</div>
+
+            <div class="suggestions">
+                <span>Try:</span>
+                <button>Rituximab</button>
+                <button>Adalimumab</button>
+                <button>Bevacizumab</button>
             </div>
-          </div>
-          <div class="chat-input-row">
-            <input class="chat-input" placeholder="Ask about any drug, payer, or policy change…">
-            <button class="btn-solid" style="font-size:12px;padding:9px 15px;">Ask</button>
-          </div>
         </div>
-      </div>
+    </div>
 
-    </div>
-  </div>
-
-  <div class="trust-bar">
-    <div class="ti">
-      <svg class="tico" viewBox="0 0 16 16"><path d="M8 2l4 2v4c0 3-4 5-4 5S4 11 4 8V4l4-2z"/></svg>
-      HIPAA-aligned
-    </div>
-    <div class="ti">
-      <svg class="tico" viewBox="0 0 16 16"><rect x="3" y="7" width="10" height="7" rx="1"/><path d="M5 7V5a3 3 0 016 0v2"/></svg>
-      Encrypted storage
-    </div>
-    <div class="ti">
-      <svg class="tico" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M5.5 8l2 2 3-3" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      Source citations on every answer
-    </div>
-    <div class="ti">
-      <svg class="tico" viewBox="0 0 16 16"><path d="M2 8h12M8 2v12" stroke-linecap="round"/></svg>
-      No cross-org data sharing
-    </div>
-    <div style="margin-left:auto;font-size:11px;color:var(--ink3);font-weight:300;">Coverage360 · Innovation Hacks 2.0 · April 2026</div>
-  </div>
-
-</div>
-</div>
-</div>
+</body>
+</html>

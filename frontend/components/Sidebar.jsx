@@ -28,7 +28,7 @@ export default function Sidebar({ alertCount = 0 }) {
   const pathname = usePathname()
 
   return (
-    <aside className="sidebar">
+    <aside className="sidebar" style={{maxWidth: open ? '240px' : '0', overflow:'hidden', padding: open ? '' : '0', transition:'max-width 0.3s ease, padding 0.3s ease'}}>
       {NAV.map(item => (
         <Link key={item.href} href={item.href} className={`sb-item${pathname === item.href ? ' on' : ''}`}>
           {item.icon}

@@ -155,7 +155,6 @@ export default function CoverageTable({ rows = [] }) {
             ))}
           </tbody>
         </table>
-      </div>
     </div>
   )
 }

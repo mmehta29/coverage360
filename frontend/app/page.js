@@ -1,6 +1,7 @@
 'use client'
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useUser } from '@auth0/nextjs-auth0/client'
+import WelcomePage from '@/components/WelcomePage'
 import Topbar from '@/components/Topbar'
 import Sidebar from '@/components/Sidebar'
 import SearchHero from '@/components/SearchHero'
@@ -10,10 +11,10 @@ import AlertsPanel from '@/components/AlertsPanel'
 import CompareView from '@/components/CompareView'
 import OrganizationProfile from '@/components/OrganizationProfile'
 import TrustBar from '@/components/TrustBar'
+import ChatWidget from '@/components/ChatWidget'
+import { INDEX_STATS } from '@/lib/mockData'
 
-const ALERTS_CACHE_KEY = 'coverage360-alerts-cache-v1'
-const ALERTS_CACHE_TTL_MS = 24 * 60 * 60 * 1000
-const ORG_PROFILE_STORAGE_PREFIX = 'coverage360-organization-profile-v1:'
+const ALERTS_CACHE_TTL_MS = 5 * 60 * 1000
 
 function PersistentChat({ drugName }) {
   const [messages, setMessages] = useState([])
@@ -203,10 +204,17 @@ function PersistentChat({ drugName }) {
   )
 }
 
+const DEV_USER = { name: 'Dev User', email: 'dev@local' }
+
 export default function Home() {
-  const { user, isLoading } = useUser()
+  const skipAuth = process.env.NEXT_PUBLIC_SKIP_AUTH === 'true'
+  const auth = useUser()
+  const user = skipAuth ? DEV_USER : auth.user
+  const isLoading = skipAuth ? false : auth.isLoading
+  const [showWelcome, setShowWelcome] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(true)
   const [nav, setNav] = useState('search')
-  const [query, setQuery] = useState('Rituximab')
+  const [query, setQuery] = useState('')
   const [result, setResult] = useState(null)
   const [notFound, setNotFound] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -214,37 +222,14 @@ export default function Home() {
   const [heatmapData, setHeatmapData] = useState({ drugs: [], payers: [], matrix: {} })
   const [heatmapLoading, setHeatmapLoading] = useState(false)
   const [heatmapError, setHeatmapError] = useState('')
-  const [compareData, setCompareData] = useState({ comparison: {}, payers: [] })
-  const [compareLoading, setCompareLoading] = useState(false)
-  const [compareError, setCompareError] = useState('')
+
   const [alertsData, setAlertsData] = useState([])
   const [alertsLoading, setAlertsLoading] = useState(false)
   const [alertsError, setAlertsError] = useState('')
-  const [organizationProfile, setOrganizationProfile] = useState(null)
 
-  useEffect(() => {
-    if (!user?.sub || typeof window === 'undefined') {
-      setOrganizationProfile(null)
-      return
-    }
-
-    try {
-      const raw = window.localStorage.getItem(`${ORG_PROFILE_STORAGE_PREFIX}${user.sub}`)
-      setOrganizationProfile(raw ? JSON.parse(raw) : null)
-    } catch {
-      setOrganizationProfile(null)
-    }
-  }, [user?.sub])
-
-  useEffect(() => {
-    if (!user) return
-    fetch('/api/payers')
-      .then(response => response.ok ? response.json() : null)
-      .then(data => {
-        if (data?.length) setPayers(data.map(payer => payer.short_name || payer.name))
-      })
-      .catch(() => {})
-  }, [user])
+  const [compareData, setCompareData] = useState(null)
+  const [compareLoading, setCompareLoading] = useState(false)
+  const [compareError, setCompareError] = useState('')
 
   useEffect(() => {
     if (!user || nav !== 'heatmap' || heatmapData.drugs.length > 0 || heatmapLoading) return
@@ -314,7 +299,7 @@ export default function Home() {
     setQuery(trimmed)
     setNotFound(false)
     setLoading(true)
-    setNav('search')
+    setShowWelcome(false)
     try {
       const res = await fetch(`/api/search?q=${encodeURIComponent(trimmed)}`)
       if (!res.ok) {
@@ -328,8 +313,9 @@ export default function Home() {
     }
   }
 
-  const burdenStyle = result ? getBurdenStyle(result.burdenScore) : {}
-  const alertCount = alertsData.filter(alert => alert.type === 'negative').length
+  if (showWelcome) {
+    return <WelcomePage onGetStarted={() => setShowWelcome(false)} />
+  }
 
   if (isLoading) {
     return (
@@ -355,17 +341,21 @@ export default function Home() {
     )
   }
 
+  const burdenStyle = result ? getBurdenStyle(result.burdenScore) : {}
+  const alertCount = alertsData.filter(alert => alert.type === 'negative').length
+
   return (
-    <div>
-      <Topbar
-        payers={payers}
-        user={user}
-        organizationName={organizationProfile?.organizationName || ''}
-        onLogout={() => { window.location.href = '/auth/logout' }}
-      />
+    <div style={{position:'relative',minHeight:'100vh',overflow:'hidden',background:'#faf8f5'}}>
+      {/* Watercolor washes */}
+      <div style={{position:'fixed',top:'-80px',left:'-60px',width:'600px',height:'600px',borderRadius:'60% 40% 55% 45% / 50% 60% 40% 55%',background:'radial-gradient(ellipse, rgba(255,160,60,0.38) 0%, rgba(255,120,30,0.18) 50%, transparent 75%)',filter:'blur(40px)',mixBlendMode:'multiply',pointerEvents:'none',zIndex:0}} />
+      <div style={{position:'fixed',top:'10%',right:'-80px',width:'550px',height:'650px',borderRadius:'45% 55% 40% 60% / 60% 40% 55% 45%',background:'radial-gradient(ellipse, rgba(100,180,230,0.35) 0%, rgba(60,140,210,0.18) 50%, transparent 75%)',filter:'blur(50px)',mixBlendMode:'multiply',pointerEvents:'none',zIndex:0}} />
+      <div style={{position:'fixed',bottom:'-60px',left:'30%',width:'580px',height:'500px',borderRadius:'55% 45% 60% 40% / 45% 55% 40% 60%',background:'radial-gradient(ellipse, rgba(220,60,140,0.28) 0%, rgba(200,40,120,0.14) 50%, transparent 75%)',filter:'blur(45px)',mixBlendMode:'multiply',pointerEvents:'none',zIndex:0}} />
+      <div style={{position:'fixed',top:'40%',left:'20%',width:'400px',height:'400px',borderRadius:'50%',background:'radial-gradient(ellipse, rgba(255,200,80,0.2) 0%, transparent 70%)',filter:'blur(60px)',mixBlendMode:'multiply',pointerEvents:'none',zIndex:0}} />
+      <div style={{position:'fixed',bottom:'10%',right:'15%',width:'350px',height:'350px',borderRadius:'50%',background:'radial-gradient(ellipse, rgba(80,160,220,0.22) 0%, transparent 70%)',filter:'blur(55px)',mixBlendMode:'multiply',pointerEvents:'none',zIndex:0}} />
+      <Topbar onToggleSidebar={() => setSidebarOpen(o => !o)} user={user} onLogout={() => { window.location.href = '/auth/logout' }} />
 
       <div className="shell">
-        <Sidebar active={nav} onNav={setNav} alertCount={alertCount} />
+        <Sidebar alertCount={alertCount} open={sidebarOpen} active={nav} onNav={setNav} />
 
         <div className="center-col">
           {nav === 'search' && (
@@ -381,7 +371,7 @@ export default function Home() {
 
                 {notFound && !loading && (
                   <div className="search-status">
-                    No results for <b>{query}</b>. Check the spelling or try a generic name.
+                    No results for <b>{query}</b>. Try searching by brand name, generic name, or J-code.
                   </div>
                 )}
 
@@ -430,10 +420,6 @@ export default function Home() {
 
           {nav === 'heatmap' && (
             <div className="content">
-              <div className="view-header">
-                <div className="view-title">Coverage heatmap</div>
-                <div className="view-sub">At-a-glance coverage status across all indexed drugs and payers.</div>
-              </div>
               <CoverageHeatmap
                 drugs={heatmapData.drugs}
                 payers={heatmapData.payers}
@@ -444,20 +430,18 @@ export default function Home() {
             </div>
           )}
 
-          {nav === 'organization' && (
-            <OrganizationProfile user={user} onProfileChange={setOrganizationProfile} />
+          {nav === 'alerts' && (
+            <div className="content">
+              <AlertsPanel
+                alerts={alertsData}
+                loading={alertsLoading}
+                error={alertsError}
+              />
+            </div>
           )}
 
           {nav === 'compare' && (
             <div className="content">
-              <div className="view-header">
-                <div className="view-title">Payer comparison</div>
-                <div className="view-sub">
-                  {result
-                    ? `Side-by-side coverage details for ${result.name} across all payers.`
-                    : 'Search for a drug to compare coverage side-by-side.'}
-                </div>
-              </div>
               <CompareView
                 result={result}
                 comparisonData={compareData}
@@ -468,21 +452,14 @@ export default function Home() {
             </div>
           )}
 
-          {nav === 'alerts' && (
-            <div className="content">
-              <div className="view-header">
-                <div className="view-title">Policy alerts</div>
-                <div className="view-sub">Recent coverage changes detected across indexed policies.</div>
-              </div>
-              <AlertsPanel alerts={alertsData} loading={alertsLoading} error={alertsError} />
-            </div>
+          {nav === 'organization' && (
+            <OrganizationProfile user={user} />
           )}
-
-          <TrustBar />
         </div>
 
-        <PersistentChat drugName={result?.name ?? null} />
+        <ChatWidget drugName={result?.name} />
       </div>
+      <TrustBar />
     </div>
   )
 }

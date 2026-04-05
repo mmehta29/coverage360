@@ -1,14 +1,16 @@
 'use client'
 import { useState } from 'react'
+import WelcomePage from '@/components/WelcomePage'
 import Topbar from '@/components/Topbar'
 import Sidebar from '@/components/Sidebar'
 import SearchHero from '@/components/SearchHero'
 import CoverageTable from '@/components/CoverageTable'
 import ChatWidget from '@/components/ChatWidget'
 import TrustBar from '@/components/TrustBar'
-import { PAYERS, INDEX_STATS } from '@/lib/mockData'
+import { INDEX_STATS } from '@/lib/mockData'
 
 export default function Home() {
+  const [showWelcome, setShowWelcome] = useState(true)
   const [query, setQuery] = useState('')
   const [result, setResult] = useState(null)
   const [notFound, setNotFound] = useState(false)
@@ -20,6 +22,7 @@ export default function Home() {
     setQuery(trimmed)
     setNotFound(false)
     setLoading(true)
+    setShowWelcome(false) // Hide welcome page when searching
     try {
       const res = await fetch(`/api/search?q=${encodeURIComponent(trimmed)}`)
       if (!res.ok) { setResult(null); setNotFound(true); return }
@@ -29,15 +32,20 @@ export default function Home() {
     }
   }
 
-  // Burden badge colors
+  // Show welcome page first
+  if (showWelcome) {
+    return <WelcomePage onGetStarted={() => setShowWelcome(false)} />
+  }
+
+  // Main app interface
   const burdenStyle = result ? getBurdenStyle(result.burdenScore) : {}
 
   return (
     <div>
-      <Topbar payers={PAYERS} />
+      <Topbar />
 
       <div className="shell">
-        <Sidebar alertCount={0} />
+        <Sidebar alertCount={3} />
 
         <div className="main">
           <SearchHero
@@ -81,17 +89,16 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="two-col">
-                  <CoverageTable rows={result.coverage} />
-                  <ChatWidget drugName={result.name} />
-                </div>
+                <CoverageTable rows={result.coverage} />
               </>
             )}
           </div>
 
-          <TrustBar />
         </div>
+
+        <ChatWidget drugName={result?.name} />
       </div>
+      <TrustBar />
     </div>
   )
 }

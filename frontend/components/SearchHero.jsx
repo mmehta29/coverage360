@@ -24,8 +24,10 @@ export default function SearchHero({ query, onQueryChange, onSearch, indexStats,
         </button>
       </div>
       <div className="recent-row">
-        {recentSearches.length > 0 && <span className="recent-lbl">Recent:</span>}
-        {recentSearches.map(r => (
+        <span className="recent-lbl">Recent:</span>
+        {recentSearches.length === 0
+          ? <span className="recent-empty">No search history yet</span>
+          : recentSearches.map(r => (
           <button key={r} className="recent-tag" onClick={() => onSearch(r)}>{r}</button>
         ))}
         {indexStats && (

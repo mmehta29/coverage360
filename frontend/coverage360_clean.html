@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Coverage360 - Medical Benefit Drug Coverage Intelligence</title>
-    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700&family=Roboto:wght@300;400;500;700&family=Isolate&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -31,8 +31,9 @@
             --color-danger: #dc3545;
             --color-info: #17a2b8;
             
-            --font-display: 'Merriweather', serif;
-            --font-body: 'Roboto', sans-serif;
+            --font-h1: 'Merriweather', serif;
+            --font-h2: 'Roboto', sans-serif;
+            --font-body: 'Isolate', sans-serif;
             
             --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
             --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
@@ -77,7 +78,7 @@
         }
  
         .logo h1 {
-            font-family: var(--font-display);
+            font-family: var(--font-h1);
             font-size: 1.5rem;
             color: var(--color-navy);
             font-weight: 700;
@@ -324,7 +325,7 @@
         }
  
         .drug-name {
-            font-family: var(--font-display);
+            font-family: var(--font-h2);
             font-size: 1.75rem;
             font-weight: 700;
             color: var(--color-navy);
@@ -393,7 +394,7 @@
         }
  
         .coverage-title {
-            font-family: var(--font-display);
+            font-family: var(--font-h2);
             font-size: 1.25rem;
             font-weight: 700;
             color: var(--color-navy);
@@ -529,7 +530,7 @@
         }
  
         .ai-title {
-            font-family: var(--font-display);
+            font-family: var(--font-h2);
             font-size: 1.125rem;
             font-weight: 700;
             color: var(--color-navy);
@@ -756,13 +757,182 @@
     </style>
 </head>
 <body>
+
+    <!-- Welcome Page -->
+    <div id="welcomePage">
+        <style>
+            #welcomePage {
+                min-height: 100vh;
+                background: white;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 2rem;
+                position: relative;
+                overflow: hidden;
+            }
+            #welcomePage .glow1 {
+                position: absolute; top: 0; right: 25%;
+                width: 600px; height: 600px;
+                background: #91bfeb; border-radius: 50%;
+                filter: blur(150px); opacity: 0.15; pointer-events: none;
+            }
+            #welcomePage .glow2 {
+                position: absolute; bottom: 0; left: 25%;
+                width: 500px; height: 500px;
+                background: #3e5161; border-radius: 50%;
+                filter: blur(150px); opacity: 0.08; pointer-events: none;
+            }
+            #welcomePage .w-sidebar {
+                position: fixed; left: 2rem; top: 50%; transform: translateY(-50%);
+                display: flex; flex-direction: column; gap: 1rem; z-index: 10;
+            }
+            #welcomePage .w-sidebar button {
+                width: 48px; height: 48px; border-radius: 16px;
+                background: #f7f9fc; border: 1px solid #e2e8f0;
+                display: flex; align-items: center; justify-content: center;
+                cursor: pointer; transition: all 0.2s;
+                color: #3e5161;
+            }
+            #welcomePage .w-sidebar button:hover {
+                background: rgba(145,191,235,0.1); border-color: #91bfeb;
+            }
+            #welcomePage .w-grid {
+                max-width: 1100px; width: 100%;
+                display: grid; grid-template-columns: 1fr 1fr;
+                gap: 4rem; align-items: center; position: relative; z-index: 10;
+                margin-left: 30px;
+            }
+            #welcomePage .w-logo-main { font-size: 1.5rem; font-weight: 500; color: #15173f; }
+            #welcomePage .w-logo-360 { font-size: 1.5rem; font-weight: 400; color: #91bfeb; }
+            #welcomePage .w-logo-sub { font-size: 0.75rem; color: #3e5161; font-weight: 300; letter-spacing: 0.05em; margin-top: 4px; }
+            #welcomePage h1 {
+                font-size: clamp(2.5rem, 5vw, 3.5rem);
+                font-weight: 700; color: #15173f; line-height: 1.15; margin: 1.5rem 0 1rem;
+            }
+            #welcomePage h1 span {
+                background: linear-gradient(to right, #91bfeb, #3e5161);
+                -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            }
+            #welcomePage .w-sub { font-size: 1.05rem; color: #3e5161; font-weight: 300; line-height: 1.6; }
+            #welcomePage .w-search-wrap {
+                margin-top: 2rem;
+                background: white; border: 2px solid #e2e8f0;
+                border-radius: 16px; padding: 6px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+                transition: border-color 0.2s;
+            }
+            #welcomePage .w-search-wrap:focus-within { border-color: #91bfeb; }
+            #welcomePage .w-search-inner {
+                display: flex; align-items: center; gap: 0.75rem; padding: 0.625rem 1rem;
+            }
+            #welcomePage .w-search-inner input {
+                flex: 1; border: none; outline: none;
+                font-size: 1.05rem; color: #15173f; background: transparent;
+                font-family: inherit;
+            }
+            #welcomePage .w-search-inner input::placeholder { color: rgba(62,81,97,0.4); }
+            #welcomePage .w-search-btn {
+                padding: 0.625rem 1.5rem; border-radius: 10px;
+                background: linear-gradient(to right, #91bfeb, #3e5161);
+                color: white; font-weight: 500; border: none; cursor: pointer;
+                font-size: 0.95rem; transition: box-shadow 0.2s;
+            }
+            #welcomePage .w-search-btn:hover { box-shadow: 0 4px 16px rgba(145,191,235,0.4); }
+            #welcomePage .w-stats {
+                display: grid; grid-template-columns: repeat(3, 1fr);
+                gap: 1.5rem; margin-top: 2rem; padding-top: 1.5rem;
+                border-top: 1px solid #f0f4f8;
+            }
+            #welcomePage .w-stat-num { font-size: 2rem; font-weight: 700; color: #15173f; }
+            #welcomePage .w-stat-num.blue { color: #91bfeb; }
+            #welcomePage .w-stat-lbl { font-size: 0.75rem; color: #3e5161; margin-top: 2px; }
+            #welcomePage .w-top-actions {
+                position: fixed; top: 2rem; right: 2rem;
+                display: flex; gap: 0.75rem; z-index: 10;
+            }
+            #welcomePage .w-top-actions button {
+                padding: 0.5rem 1.25rem; border-radius: 999px;
+                font-size: 0.75rem; font-weight: 500; cursor: pointer;
+                font-family: inherit; transition: all 0.2s;
+            }
+            #welcomePage .btn-signin {
+                background: white; border: 1px solid #e2e8f0; color: #3e5161;
+            }
+            #welcomePage .btn-signin:hover { background: #f7f9fc; border-color: #91bfeb; }
+            #welcomePage .btn-getstarted {
+                background: linear-gradient(to right, #91bfeb, #3e5161);
+                color: white; border: none;
+            }
+            #welcomePage .btn-getstarted:hover { box-shadow: 0 4px 16px rgba(145,191,235,0.4); }
+            #welcomePage .w-footer {
+                position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%);
+                font-size: 0.75rem; color: rgba(62,81,97,0.5); font-weight: 300; z-index: 10;
+                white-space: nowrap;
+            }
+            @media (max-width: 768px) {
+                #welcomePage .w-grid { grid-template-columns: 1fr; gap: 2rem; }
+                #welcomePage .w-sidebar { display: none; }
+                #welcomePage .w-right { display: none; }
+            }
+        </style>
+
+        <div class="glow1"></div>
+        <div class="glow2"></div>
+
+        <div class="w-sidebar">
+            <button title="Search">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            </button>
+            <button title="Policies">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            </button>
+            <button title="Intelligence">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+            </button>
+        </div>
+
+        <div class="w-grid">
+            <div>
+                <div>
+                    <span class="w-logo-main">Coverage</span><span class="w-logo-360">360</span>
+                    <div class="w-logo-sub">Analyst Portal</div>
+                </div>
+                <h1>What drug do you<br><span>want to search?</span></h1>
+                <p class="w-sub">Search across indexed policies from major payers.<br>Get instant coverage insights powered by AI.</p>
+
+                <div class="w-search-wrap">
+                    <div class="w-search-inner">
+                        <svg width="20" height="20" fill="none" stroke="#3e5161" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                        <input id="welcomeSearchInput" type="text" placeholder="Drug name, generic name, or J-code..." />
+                        <button class="w-search-btn" onclick="enterApp()">Search →</button>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="w-right" style="display:flex;align-items:center;justify-content:flex-end;margin: left 1px;">
+                <img src="public/nurse.png" alt="Medical Professional" style="width:550px;height:auto;filter:drop-shadow(0 20px 40px rgba(62,81,97,0.15));" />
+            </div>
+        </div>
+
+        <div class="w-top-actions">
+            <button class="btn-signin">Sign In</button>
+            <button class="btn-getstarted" onclick="enterApp()">Get Started</button>
+        </div>
+
+        <!-- <div class="w-footer">Powered by Claude AI · HIPAA-aligned</div> -->
+    </div>
+
+    <!-- Main App (hidden until welcome is dismissed) -->
+    <div id="mainApp" style="display:none">
+
     <!-- Header -->
     <header class="header">
         <div class="header-content">
             <div class="logo">
                 <div>
                     <h1>Coverage360</h1>
-                    <div class="logo-subtitle">by Anton Rx · Analyst Portal</div>
                 </div>
             </div>
             
@@ -925,5 +1095,17 @@
             </div>
         </aside>
     </div>
+    </div> <!-- end #mainApp -->
+
+    <script>
+        function enterApp() {
+            document.getElementById('welcomePage').style.display = 'none';
+            document.getElementById('mainApp').style.display = 'block';
+        }
+
+        document.getElementById('welcomeSearchInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && this.value.trim()) enterApp();
+        });
+    </script>
 </body>
 </html>

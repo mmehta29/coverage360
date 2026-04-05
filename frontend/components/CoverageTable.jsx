@@ -6,13 +6,12 @@ const PILL_CLASS = {
 
 export default function CoverageTable({ rows = [] }) {
   return (
-    <div className="card">
-      <div className="card-head">
-        <span className="card-title">Coverage across payers</span>
-        <button className="card-action" onClick={() => exportCsv(rows)}>Export CSV →</button>
+    <div>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1.5rem'}}>
+        <span style={{fontFamily:'var(--sans)',fontSize:'1.25rem',fontWeight:700,color:'var(--navy)'}}>Coverage across payers</span>
+        <button className="btn-ghost" style={{fontSize:'0.813rem'}} onClick={() => exportCsv(rows)}>Export CSV →</button>
       </div>
-      <div className="card-body" style={{padding:0}}>
-        <table className="ctable">
+      <table className="ctable">
           <thead>
             <tr>
               <th style={{width:108}}>Payer</th>
@@ -42,7 +41,6 @@ export default function CoverageTable({ rows = [] }) {
             ))}
           </tbody>
         </table>
-      </div>
     </div>
   )
 }

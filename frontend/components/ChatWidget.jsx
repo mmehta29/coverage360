@@ -33,41 +33,44 @@ export default function ChatWidget({ drugName }) {
   }
 
   return (
-    <div className="card">
-      <div className="card-head">
-        <span className="card-title">Ask a question</span>
-        <span style={{fontSize:'10.5px',color:'var(--covered)'}}>Grounded in source policies</span>
+    <div className="ai-panel">
+      <div className="ai-header">
+        <span className="ai-title">AI Chatbot</span>
+        <span className="grounded-badge">Grounded in source policies</span>
       </div>
-      <div className="card-body">
-        <div className="chat-well">
-          {messages.length === 0 && !loading && (
-            <div className="chat-msg chat-a" style={{fontStyle:'normal',color:'var(--ink3)'}}>
-              Ask anything about {drugName} — coverage rules, step therapy, site-of-care, recent changes.
-            </div>
-          )}
-          {messages.map((m, i) => (
-            <div key={i} className={`chat-msg ${m.role === 'user' ? 'chat-u' : 'chat-a'}`}>
-              {m.text}
-              {m.sources && <div className="chat-src">{m.sources}</div>}
-            </div>
-          ))}
-          {loading && (
-            <div className="chat-msg chat-a" style={{color:'var(--ink3)',fontStyle:'italic'}}>Thinking…</div>
-          )}
-          <div ref={bottomRef}/>
-        </div>
-        <div className="chat-input-row">
-          <input
-            className="chat-input"
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && send()}
-            placeholder="Ask about any drug, payer, or policy change…"
-          />
-          <button className="btn-solid" style={{fontSize:'12px',padding:'9px 15px'}} onClick={send} disabled={loading}>
-            Ask
-          </button>
-        </div>
+
+      <div className="chat-container">
+        {messages.length === 0 && !loading && (
+          <div className="ai-empty">
+            Ask anything about {drugName || 'a drug'} — coverage rules, step therapy, site-of-care, recent changes.
+          </div>
+        )}
+        {messages.map((m, i) => (
+          <div key={i}>
+            {m.role === 'user'
+              ? <div className="ai-msg-q">{m.text}</div>
+              : <div className="ai-msg-a">
+                  {m.text}
+                  {m.sources && <div className="ai-msg-src">{m.sources}</div>}
+                </div>
+            }
+          </div>
+        ))}
+        {loading && (
+          <div className="ai-msg-a" style={{color:'var(--ink3)',fontStyle:'italic'}}>Thinking…</div>
+        )}
+        <div ref={bottomRef}/>
+      </div>
+
+      <div className="ai-input-wrap">
+        <textarea
+          className="ai-textarea"
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), send())}
+          placeholder="Ask about any drug, payer, or policy change..."
+        />
+        <button className="ai-submit" onClick={send} disabled={loading}>Ask</button>
       </div>
     </div>
   )

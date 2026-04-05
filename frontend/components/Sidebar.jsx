@@ -1,4 +1,6 @@
 'use client'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 
 const NAV = [
   {
@@ -22,11 +24,21 @@ const EXPLORE = [
   },
 ]
 
+// Route-based items (separate pages)
+const ROUTES = [
+  {
+    href: '/recommend', label: 'Recommend',
+    icon: <svg className="sb-icon" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5"/><circle cx="8" cy="8" r="2"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15" strokeLinecap="round"/></svg>,
+  },
+]
+
 export default function Sidebar({ alertCount = 0, open = true, active = 'search', onNav }) {
+  const pathname = usePathname()
+
   function go(id) { onNav?.(id) }
 
   return (
-    <aside className="sidebar" style={{maxWidth: open ? '240px' : '0', overflow:'hidden', padding: open ? '' : '0', transition:'max-width 0.3s ease, padding 0.3s ease'}}>
+    <aside className="sidebar" style={{ maxWidth: open ? '240px' : '0', overflow: 'hidden', padding: open ? '' : '0', transition: 'max-width 0.3s ease, padding 0.3s ease' }}>
       {NAV.map(item => (
         <button key={item.id} className={`sb-item${active === item.id ? ' on' : ''}`} onClick={() => go(item.id)}>
           {item.icon}
@@ -42,6 +54,13 @@ export default function Sidebar({ alertCount = 0, open = true, active = 'search'
           {item.icon}
           {item.label}
         </button>
+      ))}
+
+      {ROUTES.map(item => (
+        <Link key={item.href} href={item.href} className={`sb-item${pathname === item.href ? ' on' : ''}`}>
+          {item.icon}
+          {item.label}
+        </Link>
       ))}
 
       <div className="sb-divider" />

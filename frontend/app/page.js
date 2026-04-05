@@ -1,5 +1,6 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useUser } from '@auth0/nextjs-auth0/client'
 import WelcomePage from '@/components/WelcomePage'
 import Topbar from '@/components/Topbar'
@@ -36,13 +37,23 @@ function writeAlertsCache(alerts) {
 const DEV_USER = { name: 'Dev User', email: 'dev@local' }
 
 export default function Home() {
+  return (
+    <Suspense>
+      <HomeInner />
+    </Suspense>
+  )
+}
+
+function HomeInner() {
   const skipAuth = process.env.NEXT_PUBLIC_SKIP_AUTH === 'true'
   const auth = useUser()
   const user = skipAuth ? DEV_USER : auth.user
   const isLoading = skipAuth ? false : auth.isLoading
-  const [showWelcome, setShowWelcome] = useState(true)
+  const searchParams = useSearchParams()
+  const initialNav = searchParams.get('nav') || 'search'
+  const [showWelcome, setShowWelcome] = useState(!searchParams.get('nav'))
   const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [nav, setNav] = useState('search')
+  const [nav, setNav] = useState(initialNav)
   const [query, setQuery] = useState('')
   const [result, setResult] = useState(null)
   const [notFound, setNotFound] = useState(false)

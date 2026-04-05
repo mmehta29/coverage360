@@ -134,7 +134,7 @@ export default function UploadModal({ isOpen, onClose }) {
             </div>
             <div className="upl-actions">
               <button className="btn-ghost" onClick={reset}>Upload another</button>
-              <button className="btn-solid" onClick={handleClose}>Done</button>
+              <button className="upl-btn-primary" onClick={handleClose}>Done</button>
             </div>
           </div>
         )}
@@ -152,7 +152,7 @@ export default function UploadModal({ isOpen, onClose }) {
             <div className="upl-dup-sub">This document is already in the database — no changes were made.</div>
             <div className="upl-actions">
               <button className="btn-ghost" onClick={reset}>Try a different file</button>
-              <button className="btn-solid" onClick={handleClose}>Close</button>
+              <button className="upl-btn-primary" onClick={handleClose}>Close</button>
             </div>
           </div>
         )}
@@ -244,7 +244,7 @@ export default function UploadModal({ isOpen, onClose }) {
 
             <div className="upl-actions">
               <button className="btn-ghost" onClick={handleClose}>Cancel</button>
-              <button className="btn-solid" onClick={handleUpload} disabled={!file}>
+              <button className="upl-btn-primary" onClick={handleUpload} disabled={!file}>
                 Upload & Extract →
               </button>
             </div>

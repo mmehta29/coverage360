@@ -3,7 +3,7 @@ Pydantic models for the normalized policy JSON schema.
 This is what Gemini must output for every document, regardless of source format.
 """
 from typing import Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class HCPCSCode(BaseModel):
@@ -53,6 +53,16 @@ class PACriteria(BaseModel):
     reauth_required: Optional[bool] = False
     reauth_criteria_same_as_initial: Optional[bool] = True
 
+    @field_validator('requires_pa', 'reauth_required', 'reauth_criteria_same_as_initial', mode='before')
+    @classmethod
+    def coerce_bool(cls, v):
+        """LLM sometimes returns empty strings instead of booleans — coerce safely."""
+        if v == '' or v is None:
+            return True
+        if isinstance(v, str):
+            return v.lower() not in ('false', '0', 'no', 'none', 'null')
+        return v
+
 
 class DosingInfo(BaseModel):
     max_dose: Optional[str] = None
@@ -65,6 +75,17 @@ class CoveredAlternative(BaseModel):
     drug_name: str
     hcpcs_code: Optional[str] = None
     note: Optional[str] = None
+
+
+def _coerce_bool(v, default: bool = False) -> bool:
+    """Safely coerce LLM output (empty str, None, string 'true'/'false') to bool."""
+    if v == '' or v is None:
+        return default
+    if isinstance(v, bool):
+        return v
+    if isinstance(v, str):
+        return v.lower() not in ('false', '0', 'no', 'none', 'null')
+    return bool(v)
 
 
 class CoverageRuleSchema(BaseModel):
@@ -93,6 +114,11 @@ class CoverageRuleSchema(BaseModel):
     combination_required: bool = False
     combination_drugs: list[str] = []
     site_of_care_restriction: Optional[str] = None
+
+    @field_validator('requires_prior_auth', 'combination_required', mode='before')
+    @classmethod
+    def coerce_rule_bools(cls, v):
+        return _coerce_bool(v, default=False)
 
     # For MDL / not-covered drugs
     covered_alternatives: list[CoveredAlternative] = []

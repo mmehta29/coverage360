@@ -171,18 +171,6 @@ cd backend
 pip install -r requirements.txt
 uvicorn main:app --reload
 ```
-
----
-
-## 📈 What Makes This Hackathon-Worthy
-
-1. **Real Workflow Eliminated** — Hours of manual payer research reduced to seconds
-2. **Semantic Intelligence** — Distinguishes meaningful clinical changes from noise
-3. **Proactive Monitoring** — Automated GitHub Actions keeps analysts current without manual effort
-4. **Natural Language Interface** — No query syntax needed; ask in plain English
-5. **Multi-Payer Normalization** — Apples-to-apples comparison across incompatible PDF formats
-6. **Analyst-First Design** — Every feature maps directly to a real market access workflow
-
 ---
 
 ## 👥 Team

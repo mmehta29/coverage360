@@ -1,6 +1,8 @@
-# Coverage360 (https://coverage360v0.vercel.app/)
+# Coverage360
 ### AI-Powered Medical Benefit Drug Policy Tracker
 *Built for Anton Rx Challenge · Innovation Hacks 2.0*
+
+### [![Live Demo](https://img.shields.io/badge/Live%20Demo-coverage360v0.vercel.app-blue?logo=vercel)](https://coverage360v0.vercel.app/)
 
 [![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js)](https://nextjs.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-Python-009688?logo=fastapi)](https://fastapi.tiangolo.com)
